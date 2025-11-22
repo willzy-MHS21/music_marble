@@ -1,6 +1,6 @@
 "use client";
 
-interface  MarbleControl {
+interface MarbleControl {
     onImport: () => void;
     onExport: () => void;
     onLoad: () => void;
@@ -20,17 +20,14 @@ export default function MarbleUI({onDropBall, onImport, onExport, onLoad, onClea
                 <button onClick={onExport} className={btnStyle} >Save/Export</button>
                 <button onClick={onLoad} className={btnStyle}>Load Demo</button>
                 <button onClick={onClear} className={btnStyle}>Clear</button>
+                <button onClick={onDropBall} className={btnStyle}>Drop Marble</button>
             </div>
 
-            <div className="absolute bottom-3 left-1/2 -translate-x-1/2 pointer-events-auto">
-                <button
-                    onClick={onDropBall}
-                    className="bg-green-500 hover:bg-green-600 text-white font-bold py-2 px-4 rounded-full shadow-xl hover:scale-105 transition-all"> Play</button>
-            </div>
-            <div className="absolute right-4 top-1/2 -translate-y-1/2 flex flex-col gap-3 p-2 rounded-3xl">
+            <div className="absolute bottom-0 left-1/2 -translate-x-1/2 flex flex-row gap-3 p-2 rounded-3xl pointer-events-auto">
                 <button onClick={noteBlock} className={toolBtnStyle}>Note Block</button>
                 <button onClick={track} className={toolBtnStyle}>Curve Track</button>
             </div>
+
         </div>
     );
 }
