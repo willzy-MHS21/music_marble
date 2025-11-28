@@ -4,7 +4,8 @@ import { useEffect, useRef } from 'react';
 import * as THREE from 'three';
 import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js';
 import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js';
-import UI from '../ui/UI';
+import ShapeButtons from '../ui/shape-buttons';
+import UtilityButtons from '../ui/utility-buttons';
 
 export default function MarbleScene() {
 	const mountRef = useRef<HTMLDivElement>(null);
@@ -49,7 +50,7 @@ export default function MarbleScene() {
 		// Load marble model
 		const loader = new GLTFLoader();
 		loader.load(
-			'/models/cylinder.glb',
+			'/models/marble.glb',
 			(gltf) => {
 				const marble = gltf.scene;
 				marble.position.set(0, 0, 2);
@@ -107,11 +108,6 @@ export default function MarbleScene() {
 		};
 	}, []);
 
-	// handle drop ball
-	const handleDropBall = () => {
-		console.log("ball drop");
-	}
-
 	return (
 		<div
 			ref={mountRef}
@@ -122,14 +118,16 @@ export default function MarbleScene() {
 				padding: 0,
 				overflow: 'hidden',
 			}}>
-			<UI
-				onDropBall={handleDropBall}
+			<UtilityButtons
 				onImport={() => { }}
 				onExport={() => { }}
 				onLoad={() => { }}
 				onClear={() => { }}
-				noteBlock={() => { }}
-				track={() => { }}
+			/>
+			<ShapeButtons
+				marble={() => { }}
+				plank={() => { }}
+				cylinder={() => { }}
 			/>
 		</div>
 	);
