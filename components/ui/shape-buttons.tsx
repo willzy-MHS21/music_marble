@@ -7,9 +7,10 @@ interface ShapeButtonsProps {
     marble: () => void;
     plank: () => void;
     cylinder: () => void;
+    curve: () => void;
 }
 
-export default function ShapeButtons({ marble, plank, cylinder }: ShapeButtonsProps) {
+export default function ShapeButtons({ marble, plank, cylinder, curve }: ShapeButtonsProps) {
     return (
         <div className="absolute bottom-0 left-1/2 -translate-x-1/2 flex flex-row gap-3 p-2 rounded-3xl pointer-events-auto">
             <Button 
@@ -61,6 +62,23 @@ export default function ShapeButtons({ marble, plank, cylinder }: ShapeButtonsPr
                     unoptimized
                 />
                 <span className="sr-only">Cylinder</span>
+            </Button>
+
+            <Button 
+                onClick={curve}
+                variant="ghost"
+                size="icon"
+                className="w-16 h-16 rounded-2xl hover:scale-120 transition-all bg-white/60 hover:bg-white"
+            >
+                <Image 
+                    src="/images/curve.png" 
+                    alt="Curve" 
+                    width={54} 
+                    height={54}
+                    className="object-contain"
+                    unoptimized
+                />
+                <span className="sr-only">Curve</span>
             </Button>
         </div>
     );
