@@ -128,6 +128,7 @@ export default function MarbleScene() {
 				marble={() => { }}
 				plank={() => { }}
 				cylinder={() => { }}
+				curve={() => { }}
 			/>
 		</div>
 	);
