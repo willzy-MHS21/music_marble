@@ -3,6 +3,7 @@
 import { useEffect, useRef } from 'react';
 import * as THREE from 'three';
 import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js';
+import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js';
 import UI from '../ui/UI';
 
 export default function MarbleScene() {
@@ -13,7 +14,7 @@ export default function MarbleScene() {
 
 		// Create the scene
 		const scene = new THREE.Scene();
-		scene.background = new THREE.Color(0x111111);
+		scene.background = new THREE.Color(0xffffff);
 		
 		// Set up the camera
 		const fov = 50;
@@ -26,28 +27,50 @@ export default function MarbleScene() {
 		// Set up the renderer and add the canvas
 		const renderer = new THREE.WebGLRenderer({antialias: true});
 		renderer.setSize(window.innerWidth, window.innerHeight);
+		renderer.outputColorSpace = THREE.SRGBColorSpace;
+		renderer.toneMapping = THREE.ACESFilmicToneMapping;
+		renderer.toneMappingExposure = 1.0;
 		mountRef.current.appendChild(renderer.domElement);
 
 		// Set up wall
 		const planeGeometry = new THREE.PlaneGeometry(200, 200);
-       	const planeMaterial = new THREE.MeshBasicMaterial( {color:0x222222});
+       	const planeMaterial = new THREE.MeshStandardMaterial( {color:0xF4D3B0});
 		const plane = new THREE.Mesh(planeGeometry, planeMaterial);
 		scene.add(plane);
 
 		// Set up lights
-		const ambientLight = new THREE.AmbientLight();
+		const ambientLight = new THREE.AmbientLight(0xffffff, 0.8);
 		scene.add(ambientLight);
 
-		const directionalLight = new THREE.DirectionalLight(0xffffff, 5.0);
-		directionalLight.position.set(10, 100, 10);
+		const directionalLight = new THREE.DirectionalLight(0xffffff, 1.5);
+		directionalLight.position.set(10, 10, 10);
 		scene.add(directionalLight);
 
-		// Add cube
-		const geometry = new THREE.SphereGeometry( 2, 16, 16);
-		const material = new THREE.MeshBasicMaterial({ color: 0xff0000, wireframe: false });
-		const sphere = new THREE.Mesh(geometry, material);
-		sphere.position.set(0, 0, 2);
-		scene.add(sphere);
+		// Load marble model
+		const loader = new GLTFLoader();
+		loader.load(
+			'/models/cylinder.glb',
+			(gltf) => {
+				const marble = gltf.scene;
+				marble.position.set(0, 0, 2);
+
+				marble.traverse((child) => {
+					if (child instanceof THREE.Mesh) {
+						if (child.material) {
+							if (child.material instanceof THREE.MeshStandardMaterial) {
+								child.material.roughness = 0.1;
+							}
+						}
+					}
+				});
+
+				scene.add(marble);
+			},
+			undefined,
+			(error) => {
+				console.error('Error loading marble model:', error);
+			}
+		);
 
 		// Set up controls
 		const controls = new OrbitControls(camera, renderer.domElement);
@@ -80,8 +103,6 @@ export default function MarbleScene() {
 		return () => {
 			window.removeEventListener('resize', handleResize);
 			mountRef.current?.removeChild(renderer.domElement);
-			geometry.dispose();
-			material.dispose();
 			renderer.dispose();
 		};
 	}, []);
