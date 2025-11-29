@@ -28,7 +28,7 @@ export default function UtilityButtons({ onImport, onExport, onLoad, onClear }: 
             {/* Menu Icon - Always visible */}
             <Button 
                 size="icon" 
-                className="w-10 h-10 rounded-full bg-white hover:bg-white/80 text-black"
+                className="w-10 h-10 rounded-full bg-white/60 hover:bg-white text-black"
             >
                 <Menu style={{ width: '24px', height: '24px' }} />
                 <span className="sr-only">Menu</span>
@@ -39,7 +39,7 @@ export default function UtilityButtons({ onImport, onExport, onLoad, onClear }: 
                 <div className="flex flex-col gap-2">
                     <Tooltip disableHoverableContent>
                         <TooltipTrigger asChild>
-                            <Button onClick={onImport} size="icon" className="w-10 h-10 rounded-full bg-white hover:bg-white/80 text-black">
+                            <Button onClick={onImport} size="icon" className="w-10 h-10 rounded-full bg-white/60 hover:bg-white text-black">
                                 <Upload style={{ width: '24px', height: '24px' }} />
                                 <span className="sr-only">Import</span>
                             </Button>
@@ -51,7 +51,7 @@ export default function UtilityButtons({ onImport, onExport, onLoad, onClear }: 
 
                     <Tooltip disableHoverableContent>
                         <TooltipTrigger asChild>
-                            <Button onClick={onExport} size="icon" className="w-10 h-10 rounded-full bg-white hover:bg-white/80 text-black">
+                            <Button onClick={onExport} size="icon" className="w-10 h-10 rounded-full bg-white/60 hover:bg-white text-black">
                                 <Download style={{ width: '24px', height: '24px' }} />
                                 <span className="sr-only">Save/Export</span>
                             </Button>
@@ -63,7 +63,7 @@ export default function UtilityButtons({ onImport, onExport, onLoad, onClear }: 
 
                     <Tooltip disableHoverableContent>
                         <TooltipTrigger asChild>
-                            <Button onClick={onLoad} size="icon" className="w-10 h-10 rounded-full bg-white hover:bg-white/80 text-black">
+                            <Button onClick={onLoad} size="icon" className="w-10 h-10 rounded-full bg-white/60 hover:bg-white text-black">
                                 <FileDown style={{ width: '24px', height: '24px' }} />
                                 <span className="sr-only">Load Demo</span>
                             </Button>
@@ -75,7 +75,7 @@ export default function UtilityButtons({ onImport, onExport, onLoad, onClear }: 
 
                     <Tooltip disableHoverableContent>
                         <TooltipTrigger asChild>
-                            <Button onClick={onClear} size="icon" className="w-10 h-10 rounded-full bg-white hover:bg-white/80 text-black">
+                            <Button onClick={onClear} size="icon" className="w-10 h-10 rounded-full bg-white/60 hover:bg-white text-black">
                                 <Trash2 style={{ width: '24px', height: '24px' }} />
                                 <span className="sr-only">Clear</span>
                             </Button>

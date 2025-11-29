@@ -4,10 +4,10 @@ import { Button } from "@/components/ui/button";
 import Image from "next/image";
 
 interface ShapeButtonsProps {
-    marble: () => void;
-    plank: () => void;
-    cylinder: () => void;
-    curve: () => void;
+    marble: (event: React.MouseEvent) => void;
+    plank: (event: React.MouseEvent) => void;
+    cylinder: (event: React.MouseEvent) => void;
+    curve: (event: React.MouseEvent) => void;
 }
 
 export default function ShapeButtons({ marble, plank, cylinder, curve }: ShapeButtonsProps) {
