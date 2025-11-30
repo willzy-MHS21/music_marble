@@ -40,6 +40,10 @@ export function useModelLoader({
                 const model = gltf.scene;
                 model.position.set(initialPosition.x, initialPosition.y, initialPosition.z + 1);
 
+                // Identify the shape type based on the model path
+                const shapeType = modelPath.split('/').pop()?.replace('.glb', '') || 'unknown';
+                model.userData.shapeType = shapeType;
+
                 model.traverse((child) => {
                     if (child instanceof THREE.Mesh) {
                         if (child.material instanceof THREE.MeshStandardMaterial) {

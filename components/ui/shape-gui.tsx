@@ -13,6 +13,13 @@ export class ShapeGUI {
 	private octaveController: any = null;
 	private audioContext: AudioContext | null = null;
 
+	// Checks if the object is a marble shape
+	private isMarble(object: THREE.Object3D): boolean {
+		const name = object.name.toLowerCase();
+		return name.includes('marble') || 
+			   (object.userData && object.userData.shapeType === 'marble');
+	}
+
 	/**
 	 * Gets the valid octave range for a given note
 	 * 88-key piano: A0 to C8
@@ -85,94 +92,99 @@ export class ShapeGUI {
 		this.gui.domElement.style.top = '0';
 		this.gui.domElement.style.right = '0';
 		
-		// Load existing note data if available
-		if ((object as any).userData.note) {
-			this.noteData.note = (object as any).userData.note;
-			this.noteData.octave = (object as any).userData.octave || 4;
-			this.noteData.accidental = (object as any).userData.accidental || '';
-		}
+		const isMarbleShape = this.isMarble(object);
 
-		// Piano Note Assignment Section
-		const noteFolder = this.gui.addFolder('Piano Note');
-		
-		// Display current note at the top
-		const displayNote = { currentNote: this.getFullNoteName() };
-		const noteController = noteFolder.add(displayNote, 'currentNote')
-			.name('Assigned Note')
-			.disable();
-
-		// Test sound button
-		const testActions = {
-			'Test Sound': () => {
-				this.playNoteSound();
+		// Only show Piano Note Assignment Section if NOT a marble
+		if (!isMarbleShape) {
+			// Load existing note data if available
+			if ((object as any).userData.note) {
+				this.noteData.note = (object as any).userData.note;
+				this.noteData.octave = (object as any).userData.octave || 4;
+				this.noteData.accidental = (object as any).userData.accidental || '';
 			}
-		};
-		noteFolder.add(testActions, 'Test Sound').name('Test Sound');
 
-		// Step 1: Select note
-		const noteSelectionFolder = noteFolder.addFolder('1. Select Note');
-		
-		// Natural notes
-		const naturalNotes = ['C', 'D', 'E', 'F', 'G', 'A', 'B'];
-		const noteActions: any = {};
-		
-		naturalNotes.forEach(note => {
-			noteActions[note] = () => {
-				this.noteData.note = note;
-				this.noteData.accidental = '';
-				
-				// Update octave range based on selected note
-				this.updateOctaveRange();
-				this.updateObjectNote();
-				displayNote.currentNote = this.getFullNoteName();
-				noteController.updateDisplay();
-				console.log(`Selected note: ${this.getFullNoteName()}`);
+			// Piano Note Assignment Section
+			const noteFolder = this.gui.addFolder('Piano Note');
+			
+			// Display current note at the top
+			const displayNote = { currentNote: this.getFullNoteName() };
+			const noteController = noteFolder.add(displayNote, 'currentNote')
+				.name('Assigned Note')
+				.disable();
+
+			// Test sound button
+			const testActions = {
+				'Test Sound': () => {
+					this.playNoteSound();
+				}
 			};
-		});
+			noteFolder.add(testActions, 'Test Sound').name('Test Sound');
 
-		naturalNotes.forEach(note => {
-			noteSelectionFolder.add(noteActions, note).name(note);
-		});
-
-		// Flat notes (Db, Eb, Gb, Ab, Bb)
-		const flatNotes = ['Db', 'Eb', 'Gb', 'Ab', 'Bb'];
-		const flatActions: any = {};
-		
-		flatNotes.forEach(flatNote => {
-			flatActions[flatNote] = () => {
-				this.noteData.note = flatNote[0]; // First letter (C, D, F, G, A)
-				this.noteData.accidental = 'b';
-				
-				// Update octave range based on selected note
-				this.updateOctaveRange();
-				this.updateObjectNote();
-				displayNote.currentNote = this.getFullNoteName();
-				noteController.updateDisplay();
-				console.log(`Selected note: ${this.getFullNoteName()}`);
-			};
-		});
-
-		flatNotes.forEach(flatNote => {
-			noteSelectionFolder.add(flatActions, flatNote).name(flatNote);
-		});
-		
-		noteSelectionFolder.open();
-
-		// Step 2: Select octave
-		const octaveFolder = noteFolder.addFolder('2. Select Octave');
-		const range = this.getValidOctaveRange(this.noteData.note, this.noteData.accidental);
-		
-		this.octaveController = octaveFolder.add(this.noteData, 'octave', range.min, range.max, 1)
-			.name('Octave')
-			.onChange((value: number) => {
-				this.updateObjectNote();
-				displayNote.currentNote = this.getFullNoteName();
-				noteController.updateDisplay();
-				console.log(`Selected octave: ${this.getFullNoteName()}`);
+			// Step 1: Select note
+			const noteSelectionFolder = noteFolder.addFolder('1. Select Note');
+			
+			// Natural notes
+			const naturalNotes = ['C', 'D', 'E', 'F', 'G', 'A', 'B'];
+			const noteActions: any = {};
+			
+			naturalNotes.forEach(note => {
+				noteActions[note] = () => {
+					this.noteData.note = note;
+					this.noteData.accidental = '';
+					
+					// Update octave range based on selected note
+					this.updateOctaveRange();
+					this.updateObjectNote();
+					displayNote.currentNote = this.getFullNoteName();
+					noteController.updateDisplay();
+					console.log(`Selected note: ${this.getFullNoteName()}`);
+				};
 			});
-		
-		octaveFolder.open();
-		noteFolder.open();
+
+			naturalNotes.forEach(note => {
+				noteSelectionFolder.add(noteActions, note).name(note);
+			});
+
+			// Flat notes (Db, Eb, Gb, Ab, Bb)
+			const flatNotes = ['Db', 'Eb', 'Gb', 'Ab', 'Bb'];
+			const flatActions: any = {};
+			
+			flatNotes.forEach(flatNote => {
+				flatActions[flatNote] = () => {
+					this.noteData.note = flatNote[0]; // First letter (C, D, F, G, A)
+					this.noteData.accidental = 'b';
+					
+					// Update octave range based on selected note
+					this.updateOctaveRange();
+					this.updateObjectNote();
+					displayNote.currentNote = this.getFullNoteName();
+					noteController.updateDisplay();
+					console.log(`Selected note: ${this.getFullNoteName()}`);
+				};
+			});
+
+			flatNotes.forEach(flatNote => {
+				noteSelectionFolder.add(flatActions, flatNote).name(flatNote);
+			});
+			
+			noteSelectionFolder.open();
+
+			// Step 2: Select octave
+			const octaveFolder = noteFolder.addFolder('2. Select Octave');
+			const range = this.getValidOctaveRange(this.noteData.note, this.noteData.accidental);
+			
+			this.octaveController = octaveFolder.add(this.noteData, 'octave', range.min, range.max, 1)
+				.name('Octave')
+				.onChange((value: number) => {
+					this.updateObjectNote();
+					displayNote.currentNote = this.getFullNoteName();
+					noteController.updateDisplay();
+					console.log(`Selected octave: ${this.getFullNoteName()}`);
+				});
+			
+			octaveFolder.open();
+			noteFolder.open();
+		}
 
 		// Rotation controls
 		this.rotationInDegrees = {
