@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
-import { Upload, Download, FileDown, Trash2, Menu } from "lucide-react";
+import { Upload, Download, FileDown, Trash2, Menu, Camera } from "lucide-react";
 import {
   Tooltip,
   TooltipContent,
@@ -14,9 +14,10 @@ interface UtilityButtonsProps {
     onExport: () => void;
     onLoad: () => void;
     onClear: () => void;
+    onCameraToggle: () => void;
 }
 
-export default function UtilityButtons({ onImport, onExport, onLoad, onClear }: UtilityButtonsProps) {
+export default function UtilityButtons({ onImport, onExport, onLoad, onClear, onCameraToggle }: UtilityButtonsProps) {
     const [showButtons, setShowButtons] = useState(false);
 
     return (
@@ -82,6 +83,18 @@ export default function UtilityButtons({ onImport, onExport, onLoad, onClear }: 
                         </TooltipTrigger>
                         <TooltipContent side="right" className="bg-white text-black border-white [&_svg]:!fill-white [&_svg]:!bg-white">
                             <p>Clear scene</p>
+                        </TooltipContent>
+                    </Tooltip>
+
+                    <Tooltip disableHoverableContent>
+                        <TooltipTrigger asChild>
+                            <Button onClick={onCameraToggle} size="icon" className="w-10 h-10 rounded-full bg-white/60 hover:bg-white text-black">
+                                <Camera style={{ width: '24px', height: '24px' }} />
+                                <span className="sr-only">Camera</span>
+                            </Button>
+                        </TooltipTrigger>
+                        <TooltipContent side="right" className="bg-white text-black border-white [&_svg]:!fill-white [&_svg]:!bg-white">
+                            <p>Lock/Unlock camera view</p>
                         </TooltipContent>
                     </Tooltip>
                 </div>
