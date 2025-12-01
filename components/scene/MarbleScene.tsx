@@ -31,24 +31,7 @@ export default function MarbleScene() {
 			marbleWorldRef.current.getInputSystem().loadAndDragModel(modelPath, event.nativeEvent);
 		}
 	};
-
-	// Shape button handlers
-	const handleMarble = (event: React.MouseEvent) => {
-		loadAndDragModel('/models/marble.glb', event);
-	};
-
-	const handlePlank = (event: React.MouseEvent) => {
-		loadAndDragModel('/models/plank.glb', event);
-	};
-
-	const handleCylinder = (event: React.MouseEvent) => {
-		loadAndDragModel('/models/cylinder.glb', event);
-	};
-
-	const handleCurve = (event: React.MouseEvent) => {
-		loadAndDragModel('/models/curve.glb', event);
-	};
-
+	
 	return (
 		<div
 			ref={mountRef}
@@ -60,16 +43,17 @@ export default function MarbleScene() {
 				overflow: 'hidden',
 			}}>
 			<UtilityButtons
-				onImport={() => { }}
-				onExport={() => { }}
-				onLoad={() => { }}
-				onClear={() => { }}
+				onImport={() => { /*Todo */ }}
+				onExport={() => { /*Todo */ }}
+				onLoad={() => { /*Todo */ }}
+				onClear={() => { /*Todo */ }}
+				onCameraToggle={() => { /*Todo */ }}
 			/>
 			<ShapeButtons
-				marble={handleMarble}
-				plank={handlePlank}
-				cylinder={handleCylinder}
-				curve={handleCurve}
+				marble={(e) => loadAndDragModel('/models/marble.glb', e)}
+				plank={(e) => loadAndDragModel('/models/plank.glb', e)}
+				cylinder={(e) => loadAndDragModel('/models/cylinder.glb', e)}
+				curve={(e) => loadAndDragModel('/models/curve.glb', e)}
 			/>
 		</div>
 	);
