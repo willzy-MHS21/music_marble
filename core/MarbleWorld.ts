@@ -2,6 +2,7 @@ import * as THREE from 'three';
 import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js';
 import { InputSystem } from './systems/InputSystem';
 import { SelectionSystem } from './systems/SelectionSystem';
+import { PhysicsSystem } from './systems/PhysicsSystem';
 
 export class MarbleWorld {
     private scene: THREE.Scene;
@@ -12,7 +13,8 @@ export class MarbleWorld {
     private input: InputSystem;
     private selection: SelectionSystem;
     private objects: THREE.Object3D[] = [];
-
+    private physics: PhysicsSystem;
+    
     constructor() {
         this.scene = this.createScene();
         this.camera = this.setupCamera();
@@ -20,11 +22,15 @@ export class MarbleWorld {
         this.addLights();
         this.wall = this.createWall();
         this.controls = this.setupControls();
+
+        this.physics = new PhysicsSystem();
+        this.physics.init(this.scene);
+    
         this.selection = new SelectionSystem();
         this.selection.setOnDeleteCallback((object) => {
             this.handleObjectDelete(object);
         });
-        this.input = new InputSystem(this.scene,this.camera,this.controls,this.wall,this.objects,this.selection);
+        this.input = new InputSystem(this.scene,this.camera,this.controls,this.wall,this.objects,this.selection,this.physics);
         this.animate = this.animate.bind(this);
         this.handleResize = this.handleResize.bind(this);
         window.addEventListener('resize', this.handleResize);
@@ -44,7 +50,7 @@ export class MarbleWorld {
         const zNear = 0.1;
         const zFar = 1000;
         const camera = new THREE.PerspectiveCamera(fov, ratio, zNear, zFar);
-        camera.position.set(0, 0, 100);
+        camera.position.set(0, 10, 50);
         return camera;
     }
 
@@ -103,6 +109,7 @@ export class MarbleWorld {
     animate() {
         // Animation loop
         requestAnimationFrame(this.animate);
+        this.physics.update();
         this.controls.update();
         this.renderer.render(this.scene, this.camera);
     }
