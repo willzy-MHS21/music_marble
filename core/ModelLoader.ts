@@ -1,7 +1,7 @@
 import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
 import * as THREE from 'three';
 
-export class AssetLoader {
+export class ModelLoader {
     private loader = new GLTFLoader();
     private models = new Map<string, THREE.Mesh>();
     private modelUrls = ['models/curve.glb', 'models/plank.glb', 'models/cylinder.glb', 'models/marble.glb'];
