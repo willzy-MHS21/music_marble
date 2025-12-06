@@ -65,6 +65,9 @@ export class PhysicsSystem {
         this.world.removeRigidBody(model.physicsBody);
         model.physicsBody = null;
     }
+    public clearAllBodies(models: Model[]) {
+        models.forEach(model => this.removeBody(model));
+    }
     public update() {
         this.world?.step();
         // Update Debug Geometry 
