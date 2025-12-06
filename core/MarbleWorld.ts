@@ -3,6 +3,10 @@ import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js';
 import { InputSystem } from './systems/InputSystem';
 import { SelectionSystem } from './systems/SelectionSystem';
 import { PhysicsSystem } from './systems/PhysicsSystem';
+import { ModelLoader } from './ModelLoader';
+import { ModelManager } from './ModelManager';
+import { DragController } from './systems/DragSystem';
+import { Model } from './Model';
 
 export class MarbleWorld {
     private scene: THREE.Scene;
@@ -10,11 +14,15 @@ export class MarbleWorld {
     private renderer: THREE.WebGLRenderer;
     private controls: OrbitControls;
     private wall: THREE.Mesh;
-    private input: InputSystem;
-    private selection: SelectionSystem;
-    private objects: THREE.Object3D[] = [];
-    private physics: PhysicsSystem;
-    
+
+    // Systems
+    private input!: InputSystem;
+    private selection!: SelectionSystem;
+    private physics!: PhysicsSystem;
+    private modelLoader!: ModelLoader;
+    private modelManager!: ModelManager;
+    private dragController!: DragController;
+
     constructor() {
         this.scene = this.createScene();
         this.camera = this.setupCamera();
@@ -23,18 +31,67 @@ export class MarbleWorld {
         this.wall = this.createWall();
         this.controls = this.setupControls();
 
-        this.physics = new PhysicsSystem();
-        this.physics.init(this.scene);
-    
-        this.selection = new SelectionSystem();
-        this.selection.setOnDeleteCallback((object) => {
-            this.handleObjectDelete(object);
-        });
-        this.input = new InputSystem(this.scene,this.camera,this.controls,this.wall,this.objects,this.selection,this.physics);
         this.animate = this.animate.bind(this);
         this.handleResize = this.handleResize.bind(this);
         window.addEventListener('resize', this.handleResize);
+        this.init();
     }
+
+    private async init() {
+        // Initialize physics
+        this.physics = new PhysicsSystem();
+        this.physics.init(this.scene);
+
+        // Load all modeles
+        this.modelLoader = new ModelLoader();
+        await this.modelLoader.loadAllModel();
+
+        // Create Model Manager
+        const preLoadedMeshes = this.modelLoader.getAllMesh();
+        this.modelManager = new ModelManager(this.scene, preLoadedMeshes);
+
+        // Create other Systems
+        this.selection = new SelectionSystem();
+        this.selection.setOnDeleteCallback((model) => { this.onModelDeleted(model); });
+        this.dragController = new DragController(this.controls);
+        this.input = new InputSystem(
+            this.wall,
+            this.camera,
+            this.dragController,
+            this.modelManager,
+            (model) => this.onModelPlaced(model),
+            (model) => this.onModelClicked(model),
+            () => this.onEmptySpaceClicked());
+
+    }
+
+    public ShapeButtonClick(shapeType: string, mouseevent: MouseEvent) {
+        const wallPoint = this.input.getWallIntersection(mouseevent);
+        if (!wallPoint) return;
+        const newModel = this.modelManager.spawnModel(shapeType, wallPoint);
+        this.dragController.startDrag(newModel);
+    }
+
+    private onModelPlaced(model: Model) {
+        this.physics.createBody(model);
+        this.selection.select(model);
+    }
+
+    private onModelClicked(model: Model) {
+        this.physics.removeBody(model);
+        this.selection.select(model);
+        this.dragController.startDrag(model);
+    }
+
+    private onEmptySpaceClicked() {
+        this.selection.deselect();
+    }
+
+    private onModelDeleted(model: Model) {
+        this.physics.removeBody(model);
+        this.modelManager.removeModel(model);
+    }
+
 
     private createScene() {
         // Setup Scene
@@ -96,20 +153,14 @@ export class MarbleWorld {
         return wall;
     }
 
-    private handleObjectDelete(object: THREE.Object3D): void {
-        // Remove from scene
-        this.scene.remove(object);
-
-        // Remove from objects array
-        const index = this.objects.indexOf(object);
-        if (index > -1) {
-            this.objects.splice(index, 1);
-    }
-}
     animate() {
         // Animation loop
         requestAnimationFrame(this.animate);
         this.physics.update();
+        if (this.modelManager) {
+            const models = this.modelManager.getAllModels();
+            this.physics.syncAllModels(models);
+        }
         this.controls.update();
         this.renderer.render(this.scene, this.camera);
     }
@@ -124,9 +175,6 @@ export class MarbleWorld {
         this.renderer.setSize(window.innerWidth, window.innerHeight);
     }
 
-    public getInputSystem() {
-        return this.input;
-    }
     dispose() {
         window.removeEventListener('resize', this.handleResize);
         this.renderer.dispose();

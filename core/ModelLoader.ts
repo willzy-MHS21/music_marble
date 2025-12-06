@@ -21,8 +21,7 @@ export class ModelLoader {
         });
     }
     
-    public getMesh(name: string): THREE.Mesh | undefined {
-        const mesh = this.models.get(name);
-        return mesh ? mesh.clone() : undefined;
+   public getAllMesh() {
+       return this.models;
     }
 }

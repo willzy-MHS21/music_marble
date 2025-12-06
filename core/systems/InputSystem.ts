@@ -1,26 +1,16 @@
 import * as THREE from 'three';
-import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js';
-import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js';
-import { SelectionSystem } from './SelectionSystem';
-import { PhysicsSystem } from './PhysicsSystem';
-
+import { DragController } from './DragSystem';
+import { Model } from '../Model';
+import { ModelManager } from '../ModelManager';
 
 export class InputSystem {
     private raycaster: THREE.Raycaster = new THREE.Raycaster();
     private mouse: THREE.Vector2 = new THREE.Vector2();
-    private draggedObject: THREE.Object3D | null = null;
-    private isDragging = false;
-    private isNewShape = false;
-    private loader = new GLTFLoader();
 
-    constructor(
-        private scene: THREE.Scene,
-        private camera: THREE.PerspectiveCamera,
-        private controls: OrbitControls,
-        private wall: THREE.Mesh,
-        private objects: THREE.Object3D[],
-        private selectionSystem: SelectionSystem,
-        private physicsSystem: PhysicsSystem) {
+    constructor(private wall: THREE.Mesh, private camera: THREE.PerspectiveCamera, private dragController: DragController, private modelManager: ModelManager,
+        private onModelPlaced: (model: Model) => void,
+        private onModelClicked: (model: Model) => void,
+        private onEmptySpaceClicked: () => void) {
         this.setupEventListeners();
     }
 
@@ -35,101 +25,67 @@ export class InputSystem {
         this.mouse.y = -(event.clientY / window.innerHeight) * 2 + 1;
     }
 
-    private onMouseMove = (event: MouseEvent) => {
-        if (!this.isDragging || !this.draggedObject) return;
-        // Disable orbit controls while dragging
-        this.controls.enabled = false;
-        // Calculate mouse position in normalized device coordinates
+    public getWallIntersection(event: MouseEvent) {
         this.updateMousePosition(event);
-        // Update the raycaster
         this.raycaster.setFromCamera(this.mouse, this.camera);
-        // Find intersection with the wall
+
         const intersects = this.raycaster.intersectObject(this.wall);
         if (intersects.length > 0) {
-            const point = intersects[0].point;
-            this.draggedObject.position.set(point.x, point.y, point.z + 1);
+            return intersects[0].point;
+        }
+        return null;
+    }
+
+    private getClickedModel(event: MouseEvent) {
+        this.updateMousePosition(event);
+        this.raycaster.setFromCamera(this.mouse, this.camera);
+
+        const allThreeObjects = this.modelManager.getAllModels().map(m => m.threeObject);
+        const intersects = this.raycaster.intersectObjects(allThreeObjects, true);
+        if (intersects.length > 0) {
+            let hitObject = intersects[0].object;
+            while (hitObject.parent && !allThreeObjects.includes(hitObject)) {
+                hitObject = hitObject.parent;
+            }
+            return this.modelManager.getModelByThreeObject(hitObject);
+        }
+        return null;
+    }
+    private onMouseMove = (event: MouseEvent) => {
+        if (this.dragController.isDragging()) {
+            const wallIntersection = this.getWallIntersection(event);
+            if (wallIntersection) {
+                this.dragController.updateDragPosition(wallIntersection);
+            }
         }
     };
 
     private onMouseUp = (event: MouseEvent) => {
-        if (!this.isDragging) return;
-
-        if (this.isNewShape && this.draggedObject) {
-            this.selectionSystem.select(this.draggedObject);
-            this.physicsSystem.createBody(this.draggedObject);
+        if (!this.dragController.isDragging()) return;
+        const wallIntersection = this.getWallIntersection(event);
+        if (wallIntersection) {
+            this.dragController.updateDragPosition(wallIntersection);
         }
-        this.isDragging = false;
-        this.isNewShape = false;
-        this.draggedObject = null;
-        this.controls.enabled = true;
     };
 
     private onMouseDown = (event: MouseEvent) => {
-        if (this.isDragging) return;
-
         const target = event.target as HTMLElement;
         if (target.closest('.lil-gui')) {
             return;
         }
-
-        this.updateMousePosition(event);
-        this.raycaster.setFromCamera(this.mouse, this.camera);
-        const intersects = this.raycaster.intersectObjects(this.objects, true);
-
-        if (intersects.length > 0) {
-            let selectedObject = intersects[0].object;
-            while (selectedObject.parent && !this.objects.includes(selectedObject)) {
-                selectedObject = selectedObject.parent;
+        if (this.dragController.isDragging()) {
+            const placeModel = this.dragController.endDrag();
+            if (placeModel) {
+                this.onModelPlaced(placeModel);
             }
-            if (this.objects.includes(selectedObject)) {
-                this.controls.enabled = false;
-                this.draggedObject = selectedObject;
-                this.isDragging = true;
-                this.selectionSystem.select(selectedObject);
-            }
+            return
+        }
+
+        const clickedModel = this.getClickedModel(event);
+        if (clickedModel) {
+            this.onModelClicked(clickedModel);
         } else {
-            this.selectionSystem.deselect();
+            this.onEmptySpaceClicked();
         }
     };
-
-    public loadAndDragModel(modelPath: string, event: MouseEvent) {
-        if (!this.scene || !this.camera || !this.wall) return;
-
-        this.updateMousePosition(event);
-        this.raycaster.setFromCamera(this.mouse, this.camera);
-        const intersects = this.raycaster.intersectObject(this.wall);
-
-        const initialPosition = intersects.length > 0
-            ? intersects[0].point
-            : new THREE.Vector3(0, 0, 1);
-
-        this.loader.load(
-            modelPath,
-            (gltf) => {
-                const model = gltf.scene;
-                model.position.set(initialPosition.x, initialPosition.y, initialPosition.z + 1);
-
-                // Identify the shape type based on the model path
-                const shapeType = modelPath.split('/').pop()?.replace('.glb', '') || 'unknown';
-                model.userData.shapeType = shapeType;
-
-                model.traverse((child) => {
-                    if (child instanceof THREE.Mesh) {
-                        if (child.material instanceof THREE.MeshStandardMaterial) {
-                            child.material.roughness = 0.1;
-                        }
-                    }
-                });
-                this.scene.add(model);
-                this.objects.push(model);
-                this.draggedObject = model;
-                this.isDragging = true;
-                this.isNewShape = true;
-            },
-            undefined,
-            (error) => {
-                console.error(`Error loading model from ${modelPath}:`, error);
-            }
-        );
-    }
 }

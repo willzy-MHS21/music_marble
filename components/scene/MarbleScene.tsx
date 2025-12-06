@@ -26,9 +26,9 @@ export default function MarbleScene() {
 		};
 	}, []);
 
-	const loadAndDragModel = (modelPath: string, event: React.MouseEvent) => {
+	const shapeClick = (shapeType: string, event: React.MouseEvent) => {
 		if (marbleWorldRef.current) {
-			marbleWorldRef.current.getInputSystem().loadAndDragModel(modelPath, event.nativeEvent);
+			marbleWorldRef.current.ShapeButtonClick(shapeType, event.nativeEvent);
 		}
 	};
 	
@@ -50,10 +50,10 @@ export default function MarbleScene() {
 				onCameraToggle={() => { /*Todo */ }}
 			/>
 			<ShapeButtons
-				marble={(e) => loadAndDragModel('/models/marble.glb', e)}
-				plank={(e) => loadAndDragModel('/models/plank.glb', e)}
-				cylinder={(e) => loadAndDragModel('/models/cylinder.glb', e)}
-				curve={(e) => loadAndDragModel('/models/curve.glb', e)}
+				marble={(e) => shapeClick('marble', e)}
+				plank={(e) => shapeClick('plank', e)}
+				cylinder={(e) => shapeClick('cylinder', e)}
+				curve={(e) => shapeClick('curve', e)}
 			/>
 		</div>
 	);

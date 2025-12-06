@@ -1,10 +1,9 @@
 import RAPIER from '@dimforge/rapier3d-compat';
 import * as THREE from 'three';
+import { Model } from '../Model';
 
 export class PhysicsSystem {
     world: RAPIER.World | null = null;
-    private bodyMap: Map<THREE.Object3D, RAPIER.RigidBody> = new Map();
-
     private debugLines: THREE.LineSegments | null = null;
 
     async init(scene: THREE.Scene) {
@@ -16,8 +15,8 @@ export class PhysicsSystem {
         const material = new THREE.LineBasicMaterial({
             color: 0xffffff,
             vertexColors: true,
-            linewidth: 2, 
-            depthTest: false, 
+            linewidth: 2,
+            depthTest: false,
             depthWrite: false
         });
         const geometry = new THREE.BufferGeometry();
@@ -26,12 +25,11 @@ export class PhysicsSystem {
         scene.add(this.debugLines);
     }
 
-    public createBody(object: THREE.Object3D) {
-        if (!this.world || this.bodyMap.has(object)) return;
-        console.log(object);
+    public createBody(model: Model) {
+        if (!this.world || model.physicsBody) return;
 
-        const type = object.userData.shapeType;
-
+        const type = model.shapeType;
+        const scale = model.mesh.scale;        
         let rigidBodyDesc: RAPIER.RigidBodyDesc;
         if (type === 'marble') {
             rigidBodyDesc = RAPIER.RigidBodyDesc.dynamic()
@@ -39,24 +37,14 @@ export class PhysicsSystem {
         } else {
             rigidBodyDesc = RAPIER.RigidBodyDesc.fixed();
         }
-        const mesh = object.children[0] as THREE.Mesh;
-        const scale = this.getScale(mesh);
-
-        rigidBodyDesc.setTranslation(object.position.x, object.position.y, object.position.z);
-        rigidBodyDesc.setRotation(object.quaternion);
-
+        rigidBodyDesc.setTranslation(model.threeObject.position.x, model.threeObject.position.y, model.threeObject.position.z);
+        rigidBodyDesc.setRotation(model.threeObject.quaternion);
         const rigidBody = this.world.createRigidBody(rigidBodyDesc);
         let colliderDesc: RAPIER.ColliderDesc;
-        
-        // console.log(mesh);
-        // console.log("real scale",this.getScale(mesh))
-
         if (type === 'marble') {
-            console.log(scale.x)
             colliderDesc = RAPIER.ColliderDesc.ball(scale.x);
         } else {
             if (type == 'plank') {
-                console.log(scale.x,scale.y,scale.z);
                 colliderDesc = RAPIER.ColliderDesc.cuboid(scale.x, scale.y, scale.z);
             } else if (type == 'cylinder') {
                 colliderDesc = RAPIER.ColliderDesc.cylinder(scale.y, scale.x);
@@ -67,33 +55,36 @@ export class PhysicsSystem {
                 return;
             }
         }
-        colliderDesc.setRotation(mesh.quaternion);
+        colliderDesc.setRotation(model.mesh.quaternion);
         colliderDesc.setRestitution(0.9);
         this.world.createCollider(colliderDesc, rigidBody);
-        this.bodyMap.set(object, rigidBody);
+        model.physicsBody = rigidBody;
     }
-    private getScale(mesh: THREE.Mesh) {
-        const scale = new THREE.Vector3();
-        mesh.updateMatrixWorld(true);
-        mesh.matrixWorld.decompose(new THREE.Vector3(), new THREE.Quaternion(), scale);
-        return scale;
+    public removeBody(model: Model): void {
+        if (!this.world || !model.physicsBody) return;
+        this.world.removeRigidBody(model.physicsBody);
+        model.physicsBody = null;
     }
-
     public update() {
         this.world?.step();
-        this.bodyMap.forEach((rigidBody, object) => {
-            if (rigidBody.isDynamic()) {
-                const position = rigidBody.translation();
-                const rotation = rigidBody.rotation();
-                object.position.set(position.x, position.y, position.z);
-                object.quaternion.set(rotation.x, rotation.y, rotation.z, rotation.w);
-            }
-        });
         // Update Debug Geometry 
         if (this.world && this.debugLines) {
             const { vertices, colors } = this.world.debugRender();
             this.debugLines.geometry.setAttribute('position', new THREE.BufferAttribute(vertices, 3));
             this.debugLines.geometry.setAttribute('color', new THREE.BufferAttribute(colors, 4));
         }
+    }
+    public syncFromPhysics(model: Model): void {
+        if (!model.physicsBody) return;
+        if (model.physicsBody.isDynamic()) {
+            const position = model.physicsBody.translation();
+            const rotation = model.physicsBody.rotation();
+            model.threeObject.position.set(position.x, position.y, position.z);
+            model.threeObject.quaternion.set(rotation.x, rotation.y, rotation.z, rotation.w);
+        }
+    }
+
+    public syncAllModels(models: Model[]): void {
+        models.forEach(model => this.syncFromPhysics(model));
     }
 }
