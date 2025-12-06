@@ -92,6 +92,11 @@ export class MarbleWorld {
         this.modelManager.removeModel(model);
     }
 
+    public clearALL() {
+       this.physics.clearAllBodies(this.modelManager.getAllModels());
+       this.modelManager.clear();
+       this.selection.deselect();
+    }
 
     private createScene() {
         // Setup Scene

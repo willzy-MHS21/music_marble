@@ -31,7 +31,11 @@ export default function MarbleScene() {
 			marbleWorldRef.current.ShapeButtonClick(shapeType, event.nativeEvent);
 		}
 	};
-	
+	const clearScreen = () => {
+		if (marbleWorldRef.current) {
+			marbleWorldRef.current.clearALL()
+		}
+	};
 	return (
 		<div
 			ref={mountRef}
@@ -46,7 +50,7 @@ export default function MarbleScene() {
 				onImport={() => { /*Todo */ }}
 				onExport={() => { /*Todo */ }}
 				onLoad={() => { /*Todo */ }}
-				onClear={() => { /*Todo */ }}
+				onClear={() => { clearScreen() }}
 				onCameraToggle={() => { /*Todo */ }}
 			/>
 			<ShapeButtons
