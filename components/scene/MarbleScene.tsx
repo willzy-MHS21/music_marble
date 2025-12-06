@@ -31,11 +31,6 @@ export default function MarbleScene() {
 			marbleWorldRef.current.ShapeButtonClick(shapeType, event.nativeEvent);
 		}
 	};
-	const clearScreen = () => {
-		if (marbleWorldRef.current) {
-			marbleWorldRef.current.clearALL()
-		}
-	};
     const exportScene = () => {
 		if(marbleWorldRef.current) {
 			const json = marbleWorldRef.current.exportScene();
@@ -48,10 +43,19 @@ export default function MarbleScene() {
 			URL.revokeObjectURL(url);
 		}
     };
-    const onImport = () => {
-        const input = document.getElementById('uploadSceneFile') as HTMLInputElement;
-        input.click();
-    };
+    const loadScene = async () => {
+		try {
+			const response = await fetch('/scenes/default.json');
+			console.log(response);
+			if (!response.ok) {
+				throw new Error('Default scene not found');
+			}
+			const sceneData = await response.json();
+			marbleWorldRef.current?.importScene(sceneData);
+		} catch (error) {
+			console.error('Failed to load default scene:', error);
+		}
+	};
 
 	return (
 		<div
@@ -77,11 +81,13 @@ export default function MarbleScene() {
                 }}
              />
 			<UtilityButtons
-				onImport={() => { onImport() }}
+				onImport={() => { 
+					const input = document.getElementById('uploadSceneFile') as HTMLInputElement;
+					input.click(); }}
 				onExport={() => { exportScene()}}
-				onLoad={() => { /*Todo */ }}
-				onClear={() => { clearScreen() }}
-				onCameraToggle={() => { /*Todo */ }}
+				onLoad={() => { loadScene()}}
+				onClear={() => { marbleWorldRef.current?.clearALL() }}
+				onCameraToggle={() => { /* TODO */ }}
 			/>
 			<ShapeButtons
 				marble={(e) => shapeClick('marble', e)}

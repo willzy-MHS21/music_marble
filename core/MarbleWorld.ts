@@ -149,6 +149,8 @@ export class MarbleWorld {
             });
         }
     }
+    
+    // THREE.JS Setup
     private createScene() {
         // Setup Scene
         const scene = new THREE.Scene();
