@@ -97,11 +97,18 @@ export class ShapeGUI {
 
 		// Only show Piano Note Assignment Section if NOT a marble
 		if (!isMarbleShape) {
-			// Load existing note data if available
+			// Load existing note data if available, otherwise set defaults
 			if ((object as any).userData.note) {
 				this.noteData.note = (object as any).userData.note;
 				this.noteData.octave = (object as any).userData.octave || 4;
 				this.noteData.accidental = (object as any).userData.accidental || '';
+			} else {
+				// Set default note if none exists
+				this.noteData.note = 'C';
+				this.noteData.octave = 4;
+				this.noteData.accidental = '';
+				// Save the default to userData
+				this.updateObjectNote();
 			}
 
 			// Piano Note Assignment Section

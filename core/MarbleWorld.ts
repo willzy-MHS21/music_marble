@@ -40,7 +40,7 @@ export class MarbleWorld {
     private async init() {
         // Initialize physics
         this.physics = new PhysicsSystem();
-        this.physics.init(this.scene);
+        await this.physics.init(this.scene);
 
         // Load all modeles
         this.modelLoader = new ModelLoader();
