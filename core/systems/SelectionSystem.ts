@@ -7,12 +7,18 @@ export class SelectionSystem {
     private selectedModel: Model | null = null;
     private shapeGUI: ShapeGUI;
     private onDeleteCallback?: (model: Model) => void;
+    private onRotationChangeCallback?: (model: Model) => void;
 
     constructor() {
         this.shapeGUI = new ShapeGUI();
     }
+
     public setOnDeleteCallback(callback: (model: Model) => void) {
         this.onDeleteCallback = callback;
+    }
+
+    public setOnRotationChangeCallback(callback: (model: Model) => void) {
+        this.onRotationChangeCallback = callback;
     }
 
     public select(model: Model) {
@@ -21,12 +27,20 @@ export class SelectionSystem {
         this.deselect();
         this.selectedModel = model;
         this.addOutline(model.threeObject);
-        this.shapeGUI.create(model.threeObject, () => {
-            if (this.onDeleteCallback && this.selectedModel) {
-                this.onDeleteCallback(this.selectedModel);
+        this.shapeGUI.create(
+            model.threeObject, 
+            () => {
+                if (this.onDeleteCallback && this.selectedModel) {
+                    this.onDeleteCallback(this.selectedModel);
+                }
+                this.deselect();
+            },
+            () => {
+                if (this.onRotationChangeCallback && this.selectedModel) {
+                    this.onRotationChangeCallback(this.selectedModel);
+                }
             }
-            this.deselect();
-        });
+        );
     }
 
     public deselect() {

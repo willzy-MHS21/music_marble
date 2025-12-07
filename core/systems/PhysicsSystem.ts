@@ -60,14 +60,31 @@ export class PhysicsSystem {
         this.world.createCollider(colliderDesc, rigidBody);
         model.physicsBody = rigidBody;
     }
+
     public removeBody(model: Model): void {
         if (!this.world || !model.physicsBody) return;
         this.world.removeRigidBody(model.physicsBody);
         model.physicsBody = null;
     }
+
     public clearAllBodies(models: Model[]) {
         models.forEach(model => this.removeBody(model));
     }
+
+    // Update rotation of physics body
+    public updateBodyRotation(model: Model): void {
+        if (!model.physicsBody) return;
+        
+        // Update the rigid body's rotation
+        model.physicsBody.setRotation(model.threeObject.quaternion, true);
+        
+        // Recreate the body
+        if (!model.physicsBody.isDynamic()) {
+            this.removeBody(model);
+            this.createBody(model);
+        }
+    }
+
     public update() {
         this.world?.step();
         // Update Debug Geometry 
@@ -77,6 +94,7 @@ export class PhysicsSystem {
             this.debugLines.geometry.setAttribute('color', new THREE.BufferAttribute(colors, 4));
         }
     }
+
     public syncFromPhysics(model: Model): void {
         if (!model.physicsBody) return;
         if (model.physicsBody.isDynamic()) {

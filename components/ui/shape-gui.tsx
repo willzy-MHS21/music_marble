@@ -77,8 +77,9 @@ export class ShapeGUI {
 	 * Creates and displays a GUI for the selected object
 	 * @param object - The Three.js object to control
 	 * @param onDelete - Callback function when delete button is clicked
+	 * @param onRotationChange - Optional callback function when rotation changes
 	 */
-	create(object: THREE.Object3D, onDelete: () => void): void {
+	create(object: THREE.Object3D, onDelete: () => void, onRotationChange?: () => void): void {
 		// Remove existing GUI if any
 		this.destroy();
 
@@ -197,6 +198,10 @@ export class ShapeGUI {
 			.name('Rotate (°)')
 			.onChange((value: number) => {
 				object.rotation.z = THREE.MathUtils.degToRad(value);
+				// Call the rotation change callback if provided
+				if (onRotationChange) {
+					onRotationChange();
+				}
 			});
 		
 		rotationFolder.open();

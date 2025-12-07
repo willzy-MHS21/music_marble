@@ -53,6 +53,7 @@ export class MarbleWorld {
         // Create other Systems
         this.selection = new SelectionSystem();
         this.selection.setOnDeleteCallback((model) => { this.onModelDeleted(model); });
+        this.selection.setOnRotationChangeCallback((model) => { this.onModelRotationChanged(model); });
         this.dragController = new DragController(this.controls);
         this.input = new InputSystem(
             this.wall,
@@ -90,6 +91,11 @@ export class MarbleWorld {
     private onModelDeleted(model: Model) {
         this.physics.removeBody(model);
         this.modelManager.removeModel(model);
+    }
+
+    private onModelRotationChanged(model: Model) {
+        // Update the physics body rotation when the model is rotated via GUI
+        this.physics.updateBodyRotation(model);
     }
 
     public clearALL() {
