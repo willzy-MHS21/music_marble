@@ -1,74 +1,61 @@
 "use client";
 
-import { useRef } from 'react';
-import * as THREE from 'three';
-
-import { ShapeGUI } from '../ui/shape-gui';
+import { useEffect, useRef } from 'react';
 import ShapeButtons from '../ui/shape-buttons';
 import UtilityButtons from '../ui/utility-buttons';
-
-import { useThreeScene } from '../../hooks/useThreeScene';
-import { useDragAndDrop } from '../../hooks/useDragAndDrop';
-import { useOutline } from '../../hooks/useOutline';
-import { useModelLoader } from '../../hooks/useModelLoader';
+import { MarbleWorld } from '../../core/MarbleWorld';
 
 export default function MarbleScene() {
-	const objectsRef = useRef<THREE.Object3D[]>([]);
-	const shapeGUIRef = useRef<ShapeGUI>(new ShapeGUI());
-	const selectedObjectRef = useRef<THREE.Object3D | null>(null);
+	const mountRef = useRef<HTMLDivElement>(null);
+	const marbleWorldRef = useRef<MarbleWorld | null>(null);
 
-	const { mountRef, sceneRef, cameraRef, rendererRef, controlsRef, planeRef } = useThreeScene();
-	const { addOutline, removeOutline } = useOutline();
+	useEffect(() => {
+		if (!mountRef.current) return;
 
-	const handleObjectSelected = (object: THREE.Object3D, isNew: boolean) => {
-		if (selectedObjectRef.current && selectedObjectRef.current !== object) {
-			removeOutline();
-		}
+		// Create Marble World
+		const marbleWorld = new MarbleWorld();
+		marbleWorldRef.current = marbleWorld;
+		mountRef.current.appendChild(marbleWorld.getDomElement());
+		marbleWorld.animate();
 
-		selectedObjectRef.current = object;
-		addOutline(object);
-
-		shapeGUIRef.current.create(object, () => {
-			if (sceneRef.current) {
-				removeOutline();
-				sceneRef.current.remove(object);
-
-				const index = objectsRef.current.indexOf(object);
-				if (index > -1) {
-					objectsRef.current.splice(index, 1);
-				}
-
-				selectedObjectRef.current = null;
+		return () => {
+			if (mountRef.current) {
+				mountRef.current.removeChild(marbleWorld.getDomElement());
 			}
-		});
-	};
+			marbleWorld.dispose();
+		};
+	}, []);
 
-	const handleDeselect = () => {
-		if (selectedObjectRef.current) {
-			removeOutline();
-			selectedObjectRef.current = null;
+	const shapeClick = (shapeType: string, event: React.MouseEvent) => {
+		if (marbleWorldRef.current) {
+			marbleWorldRef.current.ShapeButtonClick(shapeType, event.nativeEvent);
 		}
-		shapeGUIRef.current.destroy();
 	};
-
-	const { raycasterRef, startDragging } = useDragAndDrop({
-		sceneRef,
-		cameraRef,
-		planeRef,
-		controlsRef,
-		objectsRef,
-		onObjectSelected: handleObjectSelected,
-		onDeselect: handleDeselect,
-	});
-
-	const { loadAndDragModel } = useModelLoader({
-		sceneRef,
-		cameraRef,
-		planeRef,
-		raycasterRef,
-		objectsRef,
-		onModelLoaded: startDragging,
-	});
+    const exportScene = () => {
+		if(marbleWorldRef.current) {
+			const json = marbleWorldRef.current.exportScene();
+			const blob = new Blob([json], { type: 'application/json' });
+			const url = URL.createObjectURL(blob);
+			const a = document.createElement('a');
+			a.href = url;
+			a.download = 'scene.json';
+			a.click();
+			URL.revokeObjectURL(url);
+		}
+    };
+    const loadScene = async () => {
+		try {
+			const response = await fetch('/scenes/default.json');
+			console.log(response);
+			if (!response.ok) {
+				throw new Error('Default scene not found');
+			}
+			const sceneData = await response.json();
+			marbleWorldRef.current?.importScene(sceneData);
+		} catch (error) {
+			console.error('Failed to load default scene:', error);
+		}
+	};
 
 	return (
 		<div
@@ -79,21 +66,35 @@ export default function MarbleScene() {
 				margin: 0,
 				padding: 0,
 				overflow: 'hidden',
-			}}
-		>
+			}}>
+			<input
+                type="file"
+                id="uploadSceneFile"
+                accept=".json"
+                style={{ display: "none" }}
+                onChange={async (e) => {
+                    const file = e.target.files?.[0];
+                    if (!file) return;
+                    const text = await file.text();
+                    const json = JSON.parse(text);
+                    marbleWorldRef.current?.importScene(json);
+                }}
+             />
 			<UtilityButtons
-				onImport={() => { }}
-				onExport={() => { }}
-				onLoad={() => { }}
-				onClear={() => { }}
-				onCameraToggle={() => { }}
+				onImport={() => { 
+					const input = document.getElementById('uploadSceneFile') as HTMLInputElement;
+					input.click(); }}
+				onExport={() => { exportScene()}}
+				onLoad={() => { loadScene()}}
+				onClear={() => { marbleWorldRef.current?.clearALL() }}
+				onCameraToggle={() => { /* TODO */ }}
 			/>
 			<ShapeButtons
-				marble={(e) => loadAndDragModel('/models/marble.glb', e)}
-				plank={(e) => loadAndDragModel('/models/plank.glb', e)}
-				cylinder={(e) => loadAndDragModel('/models/cylinder.glb', e)}
-				curve={(e) => loadAndDragModel('/models/curve.glb', e)}
+				marble={(e) => shapeClick('marble', e)}
+				plank={(e) => shapeClick('plank', e)}
+				cylinder={(e) => shapeClick('cylinder', e)}
+				curve={(e) => shapeClick('curve', e)}
 			/>
 		</div>
 	);
-}
+} 
