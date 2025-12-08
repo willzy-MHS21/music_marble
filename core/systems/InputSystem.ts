@@ -10,7 +10,8 @@ export class InputSystem {
     constructor(private wall: THREE.Mesh, private camera: THREE.PerspectiveCamera, private dragController: DragController, private modelManager: ModelManager,
         private onModelPlaced: (model: Model) => void,
         private onModelClicked: (model: Model) => void,
-        private onEmptySpaceClicked: () => void) {
+        private onEmptySpaceClicked: () => void,
+        private onSpacePressed: () => void) {
         this.setupEventListeners();
     }
 
@@ -18,7 +19,14 @@ export class InputSystem {
         window.addEventListener('mousemove', this.onMouseMove);
         window.addEventListener('mouseup', this.onMouseUp);
         window.addEventListener('mousedown', this.onMouseDown);
+        window.addEventListener('keydown', this.onKeyDown);
     }
+
+    private onKeyDown = (event: KeyboardEvent) => {
+        if (event.code === 'Space') {
+            this.onSpacePressed();
+        }
+    };
 
     private updateMousePosition(event: MouseEvent) {
         this.mouse.x = (event.clientX / window.innerWidth) * 2 - 1;

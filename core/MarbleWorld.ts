@@ -14,6 +14,7 @@ export class MarbleWorld {
     private renderer: THREE.WebGLRenderer;
     private controls: OrbitControls;
     private wall: THREE.Mesh;
+    private isPaused: boolean = false;
 
     // Systems
     private input!: InputSystem;
@@ -62,11 +63,13 @@ export class MarbleWorld {
             this.modelManager,
             (model) => this.onModelPlaced(model),
             (model) => this.onModelClicked(model),
-            () => this.onEmptySpaceClicked());
+            () => this.onEmptySpaceClicked(),
+            () => { this.isPaused = !this.isPaused; });
 
     }
 
     public ShapeButtonClick(shapeType: string, mouseevent: MouseEvent) {
+        if (!this.input) return;
         const wallPoint = this.input.getWallIntersection(mouseevent);
         if (!wallPoint) return;
         const newModel = this.modelManager.spawnModel(shapeType, wallPoint);
@@ -155,7 +158,7 @@ export class MarbleWorld {
             });
         }
     }
-    
+
     // THREE.JS Setup
     private createScene() {
         // Setup Scene
@@ -220,10 +223,14 @@ export class MarbleWorld {
     animate() {
         // Animation loop
         requestAnimationFrame(this.animate);
-        this.physics.update();
+        if (this.physics && !this.isPaused) {
+            this.physics.update();
+        }
         if (this.modelManager) {
             const models = this.modelManager.getAllModels();
-            this.physics.syncAllModels(models);
+            if (this.physics && !this.isPaused) {
+                this.physics.syncAllModels(models);
+            }
         }
         this.controls.update();
         this.renderer.render(this.scene, this.camera);
