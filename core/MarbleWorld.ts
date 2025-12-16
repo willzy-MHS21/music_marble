@@ -55,6 +55,7 @@ export class MarbleWorld {
         this.selection = new SelectionSystem();
         this.selection.setOnDeleteCallback((model) => { this.onModelDeleted(model); });
         this.selection.setOnRotationChangeCallback((model) => { this.onModelRotationChanged(model); });
+        this.selection.setOnSelectionChangeCallback((model) => { this.onSelectionChanged(model); });
         this.dragController = new DragController(this.controls);
         this.input = new InputSystem(
             this.wall,
@@ -104,6 +105,11 @@ export class MarbleWorld {
     private onModelRotationChanged(model: Model) {
         // Update the physics body rotation when the model is rotated via GUI
         this.physics.updateBodyRotation(model);
+    }
+
+    private onSelectionChanged(model: Model | null) {
+        // Update InputSystem with the currently selected model for WASD movement
+        this.input.setSelectedModel(model);
     }
 
     public clearALL() {
@@ -191,6 +197,10 @@ export class MarbleWorld {
         renderer.outputColorSpace = THREE.SRGBColorSpace;
         renderer.toneMapping = THREE.ACESFilmicToneMapping;
         renderer.toneMappingExposure = 1.0;
+
+        // Enable shadow rendering
+        renderer.shadowMap.enabled = true;
+        renderer.shadowMap.type = THREE.PCFSoftShadowMap;
         return renderer;
     }
 
@@ -213,6 +223,19 @@ export class MarbleWorld {
 
         const directionalLight = new THREE.DirectionalLight(0xffffff, 1.5);
         directionalLight.position.set(10, 10, 10);
+        // Enable shadow casting
+        directionalLight.castShadow = true;
+        
+        // Configure shadow properties
+        directionalLight.shadow.mapSize.width = 2048;
+        directionalLight.shadow.mapSize.height = 2048;
+        directionalLight.shadow.camera.near = 0.5;
+        directionalLight.shadow.camera.far = 50;
+        directionalLight.shadow.camera.left = -20;
+        directionalLight.shadow.camera.right = 20;
+        directionalLight.shadow.camera.top = 20;
+        directionalLight.shadow.camera.bottom = -20;
+        
         this.scene.add(directionalLight);
     }
 
@@ -221,6 +244,9 @@ export class MarbleWorld {
         const planeGeometry = new THREE.PlaneGeometry(200, 200);
         const planeMaterial = new THREE.MeshStandardMaterial({ color: 0xF4D3B0 });
         const wall = new THREE.Mesh(planeGeometry, planeMaterial);
+        
+        // Enable shadow receiving on the wall
+        wall.receiveShadow = true;
         this.scene.add(wall);
         return wall;
     }

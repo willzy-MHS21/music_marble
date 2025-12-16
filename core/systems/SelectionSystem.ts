@@ -8,6 +8,7 @@ export class SelectionSystem {
     private shapeGUI: ShapeGUI;
     private onDeleteCallback?: (model: Model) => void;
     private onRotationChangeCallback?: (model: Model) => void;
+    private onSelectionChangeCallback?: (model: Model | null) => void;
 
     constructor() {
         this.shapeGUI = new ShapeGUI();
@@ -19,6 +20,10 @@ export class SelectionSystem {
 
     public setOnRotationChangeCallback(callback: (model: Model) => void) {
         this.onRotationChangeCallback = callback;
+    }
+
+    public setOnSelectionChangeCallback(callback: (model: Model | null) => void) {
+        this.onSelectionChangeCallback = callback;
     }
 
     public select(model: Model) {
@@ -41,12 +46,24 @@ export class SelectionSystem {
                 }
             }
         );
+        
+        if (this.onSelectionChangeCallback) {
+            this.onSelectionChangeCallback(model);
+        }
     }
 
     public deselect() {
         this.removeOutline();
         this.selectedModel = null;
         this.shapeGUI.destroy();
+        
+        if (this.onSelectionChangeCallback) {
+            this.onSelectionChangeCallback(null);
+        }
+    }
+
+    public getSelectedModel(): Model | null {
+        return this.selectedModel;
     }
     
     private addOutline(object: THREE.Object3D) {

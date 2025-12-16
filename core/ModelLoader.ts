@@ -11,6 +11,15 @@ export class ModelLoader {
         gltfs.forEach((gltf, index) => {
             const url = this.modelUrls[index];
             const name = url.split('/').pop()?.replace('.glb', '') || '';
+            
+            // Enable shadows on all meshes in the loaded model
+            gltf.scene.traverse((child) => {
+                if (child instanceof THREE.Mesh) {
+                    child.castShadow = true;
+                    child.receiveShadow = true;
+                }
+            });
+            
             this.models.set(name, gltf.scene);
         });
     }
