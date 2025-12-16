@@ -4,12 +4,16 @@ import { Model } from '../Model';
 import { ModelManager } from '../ModelManager';
 
 export class InputSystem {
+    private isMouseDown: boolean = false;
+    private mouseDownModel: Model | null = null;
+    private dragType: 'hold' | 'click' = 'click';
     private raycaster: THREE.Raycaster = new THREE.Raycaster();
     private mouse: THREE.Vector2 = new THREE.Vector2();
 
     constructor(private wall: THREE.Mesh, private camera: THREE.PerspectiveCamera, private dragController: DragController, private modelManager: ModelManager,
         private onModelPlaced: (model: Model) => void,
         private onModelClicked: (model: Model) => void,
+        private onModelDragStart: (model: Model) => void,
         private onEmptySpaceClicked: () => void,
         private onSpacePressed: () => void) {
         this.setupEventListeners();
@@ -36,7 +40,7 @@ export class InputSystem {
     public getWallIntersection(event: MouseEvent) {
         this.updateMousePosition(event);
         this.raycaster.setFromCamera(this.mouse, this.camera);
-
+        
         const intersects = this.raycaster.intersectObject(this.wall);
         if (intersects.length > 0) {
             return intersects[0].point;
@@ -59,20 +63,35 @@ export class InputSystem {
         }
         return null;
     }
+
     private onMouseMove = (event: MouseEvent) => {
         if (this.dragController.isDragging()) {
             const wallIntersection = this.getWallIntersection(event);
             if (wallIntersection) {
                 this.dragController.updateDragPosition(wallIntersection);
             }
+        } else if (this.isMouseDown && this.mouseDownModel) {
+            this.dragType = 'hold';
+            this.onModelDragStart(this.mouseDownModel);
+            this.mouseDownModel = null;
         }
     };
 
     private onMouseUp = (event: MouseEvent) => {
+        this.isMouseDown = false;
+        this.mouseDownModel = null;
+
         if (!this.dragController.isDragging()) return;
-        const wallIntersection = this.getWallIntersection(event);
-        if (wallIntersection) {
-            this.dragController.updateDragPosition(wallIntersection);
+
+        if (this.dragType === 'hold') {
+            const wallIntersection = this.getWallIntersection(event);
+            if (wallIntersection) {
+                this.dragController.updateDragPosition(wallIntersection);
+            }
+            const placeModel = this.dragController.endDrag();
+            if (placeModel) {
+                this.onModelPlaced(placeModel);
+            }
         }
     };
 
@@ -81,16 +100,22 @@ export class InputSystem {
         if (target.closest('.lil-gui')) {
             return;
         }
+
+        this.isMouseDown = true;
+        
         if (this.dragController.isDragging()) {
-            const placeModel = this.dragController.endDrag();
-            if (placeModel) {
-                this.onModelPlaced(placeModel);
+            if (this.dragType === 'click') {
+                const placeModel = this.dragController.endDrag();
+                if (placeModel) {
+                    this.onModelPlaced(placeModel);
+                }
             }
             return
         }
 
         const clickedModel = this.getClickedModel(event);
         if (clickedModel) {
+            this.mouseDownModel = clickedModel;
             this.onModelClicked(clickedModel);
         } else {
             this.onEmptySpaceClicked();

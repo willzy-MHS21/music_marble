@@ -9,7 +9,6 @@ export class DragController {
 
     public startDrag(model: Model): void {
         this.draggedModel = model;
-        // console.log("Drag Model", this.draggedModel);
         this.orbitControls.enabled = false;
     }
 

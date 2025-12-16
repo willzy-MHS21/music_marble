@@ -48,8 +48,8 @@ export class MarbleWorld {
         await this.modelLoader.loadAllModel();
 
         // Create Model Manager
-        const preLoadedMeshes = this.modelLoader.getAllMesh();
-        this.modelManager = new ModelManager(this.scene, preLoadedMeshes);
+        const preLoadedModels = this.modelLoader.getAllModels();
+        this.modelManager = new ModelManager(this.scene, preLoadedModels);
 
         // Create other Systems
         this.selection = new SelectionSystem();
@@ -63,6 +63,7 @@ export class MarbleWorld {
             this.modelManager,
             (model) => this.onModelPlaced(model),
             (model) => this.onModelClicked(model),
+            (model) => this.onModelDragStart(model),
             () => this.onEmptySpaceClicked(),
             () => { this.isPaused = !this.isPaused; });
 
@@ -82,6 +83,10 @@ export class MarbleWorld {
     }
 
     private onModelClicked(model: Model) {
+        this.selection.select(model);
+    }
+
+    private onModelDragStart(model: Model) {
         this.physics.removeBody(model);
         this.selection.select(model);
         this.dragController.startDrag(model);
@@ -223,14 +228,14 @@ export class MarbleWorld {
     animate() {
         // Animation loop
         requestAnimationFrame(this.animate);
-        if (this.physics && !this.isPaused) {
-            this.physics.update();
-        }
-        if (this.modelManager) {
+        if (!this.physics || !this.modelManager) return;
+
+        this.physics.updateDebug();
+
+        if (!this.isPaused) {
+            this.physics.step();
             const models = this.modelManager.getAllModels();
-            if (this.physics && !this.isPaused) {
-                this.physics.syncAllModels(models);
-            }
+            this.physics.syncAllModels(models);
         }
         this.controls.update();
         this.renderer.render(this.scene, this.camera);
