@@ -7,6 +7,7 @@ import { AssetLoader } from './AssetLoader';
 import { ModelManager } from './ModelManager';
 import { DragController } from './systems/DragSystem';
 import { Model } from './Model';
+import { AudioSystem } from './systems/AudioSystem';
 
 export class MarbleWorld {
     private scene: THREE.Scene;
@@ -23,6 +24,7 @@ export class MarbleWorld {
     private assetLoader!: AssetLoader;
     private modelManager!: ModelManager;
     private dragController!: DragController;
+    private audioSystem!: AudioSystem;
 
     constructor() {
         this.scene = this.createScene();
@@ -47,12 +49,22 @@ export class MarbleWorld {
         this.assetLoader = new AssetLoader();
         await this.assetLoader.loadAllAssets();
 
+        // Initialize Audio System
+        const audioContext = this.assetLoader.getAudioContext();
+        const audioBuffers = this.assetLoader.getAllAudio();
+        this.audioSystem = new AudioSystem(audioContext, audioBuffers);
+
+        // Wire Physics to Audio
+        this.physics.onCollision = (model1, model2, speed) => {
+            this.audioSystem.playCollisionSound(model1, model2, speed);
+        };
+
         // Create Model Manager
         const preLoadedModels = this.assetLoader.getAllModels();
         this.modelManager = new ModelManager(this.scene, preLoadedModels);
 
         // Create other Systems
-        this.selection = new SelectionSystem();
+        this.selection = new SelectionSystem(this.audioSystem);
         this.selection.setOnDeleteCallback((model) => { this.onModelDeleted(model); });
         this.selection.setOnRotationChangeCallback((model) => { this.onModelRotationChanged(model); });
         this.selection.setOnSelectionChangeCallback((model) => { this.onSelectionChanged(model); });

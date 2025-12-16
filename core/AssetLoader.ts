@@ -64,4 +64,7 @@ export class AssetLoader {
         return this.audioBuffers;
     }
 
+    public getAudioContext() {
+        return this.audioContext;
+    }
 }
