@@ -1,12 +1,13 @@
 import RAPIER from '@dimforge/rapier3d-compat';
 import * as THREE from 'three';
 import { Model } from '../Model';
+import { BufferGeometryUtils } from "three/examples/jsm/Addons.js";
 
 export class PhysicsSystem {
     world: RAPIER.World | null = null;
     private debugLines: THREE.LineSegments | null = null;
     private audioContext: AudioContext | null = null;
-    private playedNotes: Set<string> = new Set();
+    private activeCollisions: Map<string, number> = new Map(); 
     private bodyToModelMap: Map<number, Model> = new Map();
     private eventQueue: RAPIER.EventQueue | null = null;
 
@@ -47,25 +48,72 @@ export class PhysicsSystem {
         rigidBodyDesc.setTranslation(model.threeObject.position.x, model.threeObject.position.y, model.threeObject.position.z);
         rigidBodyDesc.setRotation(model.threeObject.quaternion);
         const rigidBody = this.world.createRigidBody(rigidBodyDesc);
+        
         let colliderDesc: RAPIER.ColliderDesc;
         if (type === 'marble') {
             colliderDesc = RAPIER.ColliderDesc.ball(scale.x);
+            colliderDesc.setRotation(mesh.quaternion);
+            colliderDesc.setRestitution(0); 
+            colliderDesc.setFriction(0.5); 
+            colliderDesc.setActiveEvents(RAPIER.ActiveEvents.COLLISION_EVENTS);
+            const collider = this.world.createCollider(colliderDesc, rigidBody);
         } else {
             if (type == 'plank') {
                 colliderDesc = RAPIER.ColliderDesc.cuboid(scale.x, scale.y, scale.z);
+                colliderDesc.setRotation(mesh.quaternion);
+                colliderDesc.setRestitution(0.9);
+                colliderDesc.setActiveEvents(RAPIER.ActiveEvents.COLLISION_EVENTS);
+                const collider = this.world.createCollider(colliderDesc, rigidBody);
             } else if (type == 'cylinder') {
                 colliderDesc = RAPIER.ColliderDesc.cylinder(scale.y, scale.x);
+                colliderDesc.setRotation(mesh.quaternion);
+                colliderDesc.setRestitution(0.9);
+                colliderDesc.setActiveEvents(RAPIER.ActiveEvents.COLLISION_EVENTS);
+                const collider = this.world.createCollider(colliderDesc, rigidBody);
             } else if (type == 'curve') {
-                colliderDesc = RAPIER.ColliderDesc.cuboid(scale.x, scale.y, scale.z);
+                // Use trimesh collider for accurate curve collision
+                const geometry = mesh.geometry.clone();
+                
+                // Apply mesh transformations to geometry
+                geometry.applyMatrix4(mesh.matrix);
+                
+                const mergedGeometry = BufferGeometryUtils.mergeVertices(geometry);
+                
+                // Ensure we have Float32Array for positions
+                const positions = mergedGeometry.getAttribute('position').array;
+                const indices = mergedGeometry.index?.array;
+                
+                if (!indices) {
+                    console.error('Curve geometry has no indices');
+                    return;
+                }
+                
+                const positionsFloat32 = positions instanceof Float32Array 
+                    ? positions 
+                    : new Float32Array(positions);
+                
+                const indicesUint32 = indices instanceof Uint32Array 
+                    ? indices 
+                    : new Uint32Array(indices);
+                
+                colliderDesc = RAPIER.ColliderDesc.trimesh(
+                    positionsFloat32,
+                    indicesUint32
+                );
+                colliderDesc.setRestitution(0.0); 
+                colliderDesc.setFriction(0.5); 
+                colliderDesc.setActiveEvents(RAPIER.ActiveEvents.COLLISION_EVENTS);
+                const collider = this.world.createCollider(colliderDesc, rigidBody);
+                
+                // Clean up
+                geometry.dispose();
+                mergedGeometry.dispose();
             } else {
                 console.error(`Unknown shape type: ${type}`);
                 return;
             }
         }
-        colliderDesc.setRotation(mesh.quaternion);
-        colliderDesc.setRestitution(0.9);
-        colliderDesc.setActiveEvents(RAPIER.ActiveEvents.COLLISION_EVENTS);
-        const collider = this.world.createCollider(colliderDesc, rigidBody);
+        
         model.physicsBody = rigidBody;
 
         // Store the mapping between body handle and model
@@ -92,8 +140,8 @@ export class PhysicsSystem {
         // Update the rigid body's rotation
         model.physicsBody.setRotation(model.threeObject.quaternion, true);
 
-        // Recreate the body
-        if (!model.physicsBody.isDynamic()) {
+        // Recreate the body for curves and static objects
+        if (!model.physicsBody.isDynamic() || model.shapeType === 'curve') {
             this.removeBody(model);
             this.createBody(model);
         }
@@ -104,27 +152,38 @@ export class PhysicsSystem {
 
         this.world.step(this.eventQueue);
 
+        const currentTime = performance.now();
+
         // Process collision events
         this.eventQueue.drainCollisionEvents((handle1, handle2, started) => {
-            if (started) {
-                // Get colliders from handles
-                const collider1 = this.world!.getCollider(handle1);
-                const collider2 = this.world!.getCollider(handle2);
+            // Get colliders from handles
+            const collider1 = this.world!.getCollider(handle1);
+            const collider2 = this.world!.getCollider(handle2);
 
-                if (!collider1 || !collider2) return;
+            if (!collider1 || !collider2) return;
 
-                // Get parent rigid bodies
-                const body1 = collider1.parent();
-                const body2 = collider2.parent();
+            // Get parent rigid bodies
+            const body1 = collider1.parent();
+            const body2 = collider2.parent();
 
-                if (!body1 || !body2) return;
+            if (!body1 || !body2) return;
 
-                // Get models from rigid body handles
-                const model1 = this.bodyToModelMap.get(body1.handle);
-                const model2 = this.bodyToModelMap.get(body2.handle);
+            // Get models from rigid body handles
+            const model1 = this.bodyToModelMap.get(body1.handle);
+            const model2 = this.bodyToModelMap.get(body2.handle);
 
-                if (model1 && model2 && model1.physicsBody && model2.physicsBody) {
-                    this.handleCollision(model1.physicsBody, model2.physicsBody);
+            if (model1 && model2 && model1.physicsBody && model2.physicsBody) {
+                // Use body handles for tracking - this treats entire rigid body as one
+                const collisionKey = `${body1.handle}-${body2.handle}`;
+                
+                if (started) {
+                    const lastCollisionTime = this.activeCollisions.get(collisionKey);
+                    
+                    // Only play sound if this is a new collision (no recent collision in last 1 second)
+                    if (!lastCollisionTime || currentTime - lastCollisionTime > 1000) {
+                        this.activeCollisions.set(collisionKey, currentTime);
+                        this.handleCollision(model1.physicsBody, model2.physicsBody);
+                    }
                 }
             }
         });
@@ -180,16 +239,7 @@ export class PhysicsSystem {
 
         if (!shapeModel) return;
 
-        // Create collision key for debouncing
-        const collisionKey = `${marbleBody.handle}-${shapeBody.handle}`;
-
-        // Prevent playing the same note multiple times in quick succession
-        if (this.playedNotes.has(collisionKey)) return;
-
-        this.playedNotes.add(collisionKey);
-        setTimeout(() => this.playedNotes.delete(collisionKey), 200); // Debounce for 200ms
-
-        // Play the note
+        // Play the note (no debouncing needed since we track collision start/end)
         this.playNote(shapeModel);
     }
 
@@ -240,6 +290,6 @@ export class PhysicsSystem {
             this.audioContext = null;
         }
         this.bodyToModelMap.clear();
-        this.playedNotes.clear();
+        this.activeCollisions.clear();
     }
 }
