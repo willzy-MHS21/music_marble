@@ -3,29 +3,24 @@ import { Model } from './Model';
 
 export class ModelManager {
     private models: Model[] = [];
-    private preloadedMeshes: Map<string, THREE.Mesh>;
+    private preloadedModels: Map<string, THREE.Group>;
 
-    constructor(private scene: THREE.Scene, preloadedMeshes: Map<string, THREE.Mesh>) {
-        this.preloadedMeshes = preloadedMeshes;
+    constructor(private scene: THREE.Scene, preloadedModels: Map<string, THREE.Group>) {
+        this.preloadedModels = preloadedModels;
     }
 
     public spawnModel(shapeType: string, position: THREE.Vector3): Model {
-        const askMesh = this.preloadedMeshes.get(shapeType);
-        if (!askMesh) {
+        const askModel = this.preloadedModels.get(shapeType);
+        if (!askModel) {
             throw new Error(`Model ${shapeType} not preloaded`);
         }
-        const clonedMesh = askMesh.clone();
-        const container = new THREE.Object3D();
-        // console.log(container);
-        container.add(clonedMesh);
-        container.position.copy(position);
-        container.userData.shapeType = shapeType;
-
-        const model = new Model(container, clonedMesh, shapeType);
-
-        this.scene.add(container);
+        const cloneModel = askModel.clone();
+        
+        cloneModel.position.copy(position);
+        cloneModel.userData.shapeType = shapeType;
+        const model = new Model(cloneModel, shapeType);
+        this.scene.add(cloneModel);
         this.models.push(model);
-
         return model;
     }
 
