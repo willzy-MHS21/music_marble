@@ -10,6 +10,7 @@ export class PhysicsSystem {
     private activeCollisions: Map<string, number> = new Map(); 
     private bodyToModelMap: Map<number, Model> = new Map();
     private eventQueue: RAPIER.EventQueue | null = null;
+    private highlightTimers: Map<Model, NodeJS.Timeout> = new Map();
 
     async init(scene: THREE.Scene) {
         await RAPIER.init();
@@ -123,6 +124,13 @@ export class PhysicsSystem {
     public removeBody(model: Model): void {
         if (!this.world || !model.physicsBody) return;
 
+        // Clear any active highlight timer
+        const timer = this.highlightTimers.get(model);
+        if (timer) {
+            clearTimeout(timer);
+            this.highlightTimers.delete(model);
+        }
+
         this.bodyToModelMap.delete(model.physicsBody.handle);
 
         this.world.removeRigidBody(model.physicsBody);
@@ -182,7 +190,7 @@ export class PhysicsSystem {
                     // Only play sound if this is a new collision (no recent collision in last 1 second)
                     if (!lastCollisionTime || currentTime - lastCollisionTime > 1000) {
                         this.activeCollisions.set(collisionKey, currentTime);
-                        this.handleCollision(model1.physicsBody, model2.physicsBody);
+                        this.handleCollision(model1.physicsBody, model2.physicsBody, model1, model2);
                     }
                 }
             }
@@ -212,35 +220,58 @@ export class PhysicsSystem {
         models.forEach(model => this.syncFromPhysics(model));
     }
 
-    private handleCollision(body1: RAPIER.RigidBody, body2: RAPIER.RigidBody): void {
+    private handleCollision(body1: RAPIER.RigidBody, body2: RAPIER.RigidBody, model1: Model, model2: Model): void {
         // Find which body is the marble and which is the shape
         let marbleBody: RAPIER.RigidBody | null = null;
         let shapeBody: RAPIER.RigidBody | null = null;
+        let marbleModel: Model | null = null;
+        let shapeModel: Model | null = null;
 
-        if (body1.isDynamic()) {
+        if (body1.isDynamic() && model1.shapeType === 'marble') {
             marbleBody = body1;
             shapeBody = body2;
-        } else if (body2.isDynamic()) {
+            marbleModel = model1;
+            shapeModel = model2;
+        } else if (body2.isDynamic() && model2.shapeType === 'marble') {
             marbleBody = body2;
             shapeBody = body1;
+            marbleModel = model2;
+            shapeModel = model1;
         }
 
-        if (!marbleBody || !shapeBody) return;
+        if (!marbleBody || !shapeBody || !shapeModel) return;
 
         // Get the velocity of the marble to determine impact strength
         const velocity = marbleBody.linvel();
         const speed = Math.sqrt(velocity.x * velocity.x + velocity.y * velocity.y + velocity.z * velocity.z);
 
-        // Only play sound if marble is moving fast enough 
+        // Only react if marble is moving fast enough 
         if (speed < 0.5) return;
 
-        // Get the model from the shape body
-        const shapeModel = this.bodyToModelMap.get(shapeBody.handle);
+        // Highlight the shape that was hit
+        this.highlightShape(shapeModel);
 
-        if (!shapeModel) return;
-
-        // Play the note (no debouncing needed since we track collision start/end)
+        // Play the note
         this.playNote(shapeModel);
+    }
+
+    private highlightShape(model: Model): void {
+        // Clear any existing timer for this model
+        const existingTimer = this.highlightTimers.get(model);
+        if (existingTimer) {
+            clearTimeout(existingTimer);
+        }
+
+        // Highlight the model
+        model.highlight();
+
+        // Set a timer to unhighlight after 1 second
+        const timer = setTimeout(() => {
+            model.unhighlight();
+            this.highlightTimers.delete(model);
+        }, 1000);
+
+        this.highlightTimers.set(model, timer);
     }
 
     private async playNote(model: Model): Promise<void> {
@@ -289,6 +320,11 @@ export class PhysicsSystem {
             this.audioContext.close();
             this.audioContext = null;
         }
+        
+        // Clear all highlight timers
+        this.highlightTimers.forEach(timer => clearTimeout(timer));
+        this.highlightTimers.clear();
+        
         this.bodyToModelMap.clear();
         this.activeCollisions.clear();
     }

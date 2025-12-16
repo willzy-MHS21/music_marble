@@ -9,6 +9,8 @@ export class InputSystem {
     private dragType: 'hold' | 'click' = 'click';
     private raycaster: THREE.Raycaster = new THREE.Raycaster();
     private mouse: THREE.Vector2 = new THREE.Vector2();
+    private selectedModel: Model | null = null;
+    private moveSpeed: number = 0.5; // Units to move per key press
 
     constructor(private wall: THREE.Mesh, private camera: THREE.PerspectiveCamera, private dragController: DragController, private modelManager: ModelManager,
         private onModelPlaced: (model: Model) => void,
@@ -17,6 +19,10 @@ export class InputSystem {
         private onEmptySpaceClicked: () => void,
         private onSpacePressed: () => void) {
         this.setupEventListeners();
+    }
+
+    public setSelectedModel(model: Model | null) {
+        this.selectedModel = model;
     }
 
     private setupEventListeners() {
@@ -29,8 +35,48 @@ export class InputSystem {
     private onKeyDown = (event: KeyboardEvent) => {
         if (event.code === 'Space') {
             this.onSpacePressed();
+            return;
+        }
+
+        // WASD movement controls
+        if (this.selectedModel && !this.dragController.isDragging()) {
+            const position = this.selectedModel.threeObject.position;
+            let moved = false;
+
+            switch (event.code) {
+                case 'KeyW': // Move up
+                    position.y += this.moveSpeed;
+                    moved = true;
+                    break;
+                case 'KeyS': // Move down
+                    position.y -= this.moveSpeed;
+                    moved = true;
+                    break;
+                case 'KeyA': // Move left
+                    position.x -= this.moveSpeed;
+                    moved = true;
+                    break;
+                case 'KeyD': // Move right
+                    position.x += this.moveSpeed;
+                    moved = true;
+                    break;
+            }
+
+            if (moved) {
+                event.preventDefault();
+                // Update physics body position if it exists
+                this.onModelMoved(this.selectedModel);
+            }
         }
     };
+
+    private onModelMoved(model: Model) {
+        // Notify that model has moved (for physics sync)
+        // This will trigger physics body update
+        this.onModelDragStart(model);
+        this.dragController.endDrag();
+        this.onModelPlaced(model);
+    }
 
     private updateMousePosition(event: MouseEvent) {
         this.mouse.x = (event.clientX / window.innerWidth) * 2 - 1;

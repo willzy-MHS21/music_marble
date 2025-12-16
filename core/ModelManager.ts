@@ -16,6 +16,14 @@ export class ModelManager {
         }
         const cloneModel = askModel.clone();
         
+        // Ensure shadows are enabled on cloned model
+        cloneModel.traverse((child) => {
+            if (child instanceof THREE.Mesh) {
+                child.castShadow = true;
+                child.receiveShadow = true;
+            }
+        });
+        
         cloneModel.position.copy(position);
         cloneModel.userData.shapeType = shapeType;
         const model = new Model(cloneModel, shapeType);
