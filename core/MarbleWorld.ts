@@ -3,7 +3,7 @@ import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js';
 import { InputSystem } from './systems/InputSystem';
 import { SelectionSystem } from './systems/SelectionSystem';
 import { PhysicsSystem } from './systems/PhysicsSystem';
-import { ModelLoader } from './ModelLoader';
+import { AssetLoader } from './AssetLoader';
 import { ModelManager } from './ModelManager';
 import { DragController } from './systems/DragSystem';
 import { Model } from './Model';
@@ -20,7 +20,7 @@ export class MarbleWorld {
     private input!: InputSystem;
     private selection!: SelectionSystem;
     private physics!: PhysicsSystem;
-    private modelLoader!: ModelLoader;
+    private assetLoader!: AssetLoader;
     private modelManager!: ModelManager;
     private dragController!: DragController;
 
@@ -43,12 +43,12 @@ export class MarbleWorld {
         this.physics = new PhysicsSystem();
         await this.physics.init(this.scene);
 
-        // Load all modeles
-        this.modelLoader = new ModelLoader();
-        await this.modelLoader.loadAllModel();
+        // Load all assets (models and audio)
+        this.assetLoader = new AssetLoader();
+        await this.assetLoader.loadAllAssets();
 
         // Create Model Manager
-        const preLoadedModels = this.modelLoader.getAllModels();
+        const preLoadedModels = this.assetLoader.getAllModels();
         this.modelManager = new ModelManager(this.scene, preLoadedModels);
 
         // Create other Systems
@@ -103,12 +103,10 @@ export class MarbleWorld {
     }
 
     private onModelRotationChanged(model: Model) {
-        // Update the physics body rotation when the model is rotated via GUI
         this.physics.updateBodyRotation(model);
     }
 
     private onSelectionChanged(model: Model | null) {
-        // Update InputSystem with the currently selected model for WASD movement
         this.input.setSelectedModel(model);
     }
 
@@ -172,14 +170,12 @@ export class MarbleWorld {
 
     // THREE.JS Setup
     private createScene() {
-        // Setup Scene
         const scene = new THREE.Scene();
         scene.background = new THREE.Color(0xffffff);
         return scene;
     }
 
     private setupCamera() {
-        // Setup Camera
         const fov = 50;
         const ratio = window.innerWidth / window.innerHeight;
         const zNear = 0.1;
@@ -190,7 +186,6 @@ export class MarbleWorld {
     }
 
     private setupRenderer() {
-        // Setup Renderer
         const renderer = new THREE.WebGLRenderer({ antialias: true });
         renderer.setSize(window.innerWidth, window.innerHeight);
         renderer.setPixelRatio(window.devicePixelRatio);
@@ -198,14 +193,12 @@ export class MarbleWorld {
         renderer.toneMapping = THREE.ACESFilmicToneMapping;
         renderer.toneMappingExposure = 1.0;
 
-        // Enable shadow rendering
         renderer.shadowMap.enabled = true;
         renderer.shadowMap.type = THREE.PCFSoftShadowMap;
         return renderer;
     }
 
     private setupControls() {
-        // Set up controls
         const controls = new OrbitControls(this.camera, this.renderer.domElement);
         controls.minDistance = 10;
         controls.maxDistance = 100;
@@ -217,16 +210,11 @@ export class MarbleWorld {
     }
 
     private addLights() {
-        // Set up lights
         const ambientLight = new THREE.AmbientLight(0xffffff, 0.8);
         this.scene.add(ambientLight);
-
         const directionalLight = new THREE.DirectionalLight(0xffffff, 1.5);
         directionalLight.position.set(10, 10, 10);
-        // Enable shadow casting
         directionalLight.castShadow = true;
-        
-        // Configure shadow properties
         directionalLight.shadow.mapSize.width = 2048;
         directionalLight.shadow.mapSize.height = 2048;
         directionalLight.shadow.camera.near = 0.5;
@@ -235,24 +223,20 @@ export class MarbleWorld {
         directionalLight.shadow.camera.right = 20;
         directionalLight.shadow.camera.top = 20;
         directionalLight.shadow.camera.bottom = -20;
-        
         this.scene.add(directionalLight);
     }
 
     private createWall() {
-        // Set up wall
         const planeGeometry = new THREE.PlaneGeometry(200, 200);
         const planeMaterial = new THREE.MeshStandardMaterial({ color: 0xF4D3B0 });
         const wall = new THREE.Mesh(planeGeometry, planeMaterial);
-        
-        // Enable shadow receiving on the wall
+
         wall.receiveShadow = true;
         this.scene.add(wall);
         return wall;
     }
 
     animate() {
-        // Animation loop
         requestAnimationFrame(this.animate);
         if (!this.physics || !this.modelManager) return;
 
