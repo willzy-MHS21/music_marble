@@ -1,6 +1,7 @@
 import * as THREE from 'three';
 import { Model } from '../Model';
 import { ShapeGUI } from '../../components/ui/shape-gui';
+import { AudioSystem } from './AudioSystem';
 
 export class SelectionSystem {
     private outlineMeshes: THREE.Mesh[] = [];
@@ -9,9 +10,11 @@ export class SelectionSystem {
     private onDeleteCallback?: (model: Model) => void;
     private onRotationChangeCallback?: (model: Model) => void;
     private onSelectionChangeCallback?: (model: Model | null) => void;
+    private audioSystem?: AudioSystem;
 
-    constructor() {
+    constructor(audioSystem?: AudioSystem) {
         this.shapeGUI = new ShapeGUI();
+        this.audioSystem = audioSystem;
     }
 
     public setOnDeleteCallback(callback: (model: Model) => void) {
@@ -33,7 +36,7 @@ export class SelectionSystem {
         this.selectedModel = model;
         this.addOutline(model.threeObject);
         this.shapeGUI.create(
-            model.threeObject, 
+            model,
             () => {
                 if (this.onDeleteCallback && this.selectedModel) {
                     this.onDeleteCallback(this.selectedModel);
@@ -44,7 +47,8 @@ export class SelectionSystem {
                 if (this.onRotationChangeCallback && this.selectedModel) {
                     this.onRotationChangeCallback(this.selectedModel);
                 }
-            }
+            },
+            this.audioSystem
         );
         
         if (this.onSelectionChangeCallback) {

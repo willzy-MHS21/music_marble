@@ -6,11 +6,11 @@ import { BufferGeometryUtils } from "three/examples/jsm/Addons.js";
 export class PhysicsSystem {
     world: RAPIER.World | null = null;
     private debugLines: THREE.LineSegments | null = null;
-    private audioContext: AudioContext | null = null;
-    private activeCollisions: Map<string, number> = new Map(); 
+    private activeCollisions: Map<string, number> = new Map();
     private bodyToModelMap: Map<number, Model> = new Map();
     private eventQueue: RAPIER.EventQueue | null = null;
     private highlightTimers: Map<Model, NodeJS.Timeout> = new Map();
+    public onCollision?: (model1: Model, model2: Model, speed: number) => void;
 
     async init(scene: THREE.Scene) {
         await RAPIER.init();
@@ -251,8 +251,13 @@ export class PhysicsSystem {
         // Highlight the shape that was hit
         this.highlightShape(shapeModel);
 
-        // Play the note
-        this.playNote(shapeModel);
+        // Highlight the shape that was hit
+        this.highlightShape(shapeModel);
+
+        // Notify listener
+        if (this.onCollision && marbleModel && shapeModel) {
+            this.onCollision(marbleModel, shapeModel, speed);
+        }
     }
 
     private highlightShape(model: Model): void {
@@ -274,57 +279,13 @@ export class PhysicsSystem {
         this.highlightTimers.set(model, timer);
     }
 
-    private async playNote(model: Model): Promise<void> {
-        const userData = model.threeObject.userData;
-
-        // Check if the model has note data
-        if (!userData.note || userData.octave === undefined) {
-            return;
-        }
-
-        try {
-            const note = userData.note;
-            const octave = userData.octave;
-            const accidental = userData.accidental || '';
-            const fileName = `${note}${accidental}${octave}.mp3`;
-            const soundPath = `/sounds/${fileName}`;
-
-            // Create audio context if it doesn't exist
-            if (!this.audioContext) {
-                this.audioContext = new AudioContext();
-            }
-
-            // Fetch and play the audio
-            const response = await fetch(soundPath);
-            if (!response.ok) {
-                console.error(`Sound file not found: ${soundPath}`);
-                return;
-            }
-
-            const arrayBuffer = await response.arrayBuffer();
-            const audioBuffer = await this.audioContext.decodeAudioData(arrayBuffer);
-
-            const source = this.audioContext.createBufferSource();
-            source.buffer = audioBuffer;
-            source.connect(this.audioContext.destination);
-            source.start(0);
-
-            console.log(`Playing collision note: ${note}${accidental}${octave}`);
-        } catch (error) {
-            console.error('Error playing collision note:', error);
-        }
-    }
 
     public dispose(): void {
-        if (this.audioContext) {
-            this.audioContext.close();
-            this.audioContext = null;
-        }
-        
+
         // Clear all highlight timers
         this.highlightTimers.forEach(timer => clearTimeout(timer));
         this.highlightTimers.clear();
-        
+
         this.bodyToModelMap.clear();
         this.activeCollisions.clear();
     }

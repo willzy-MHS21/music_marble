@@ -1,9 +1,11 @@
 import { GUI } from 'lil-gui';
 import * as THREE from 'three';
+import { AudioSystem } from '../../core/systems/AudioSystem';
+import { Model } from '../../core/Model';
 
 export class ShapeGUI {
 	private gui: GUI | null = null;
-	private selectedObject: THREE.Object3D | null = null;
+	private selectedModel: Model | null = null;
 	private rotationInDegrees = { z: 0 };
 	private noteData = { 
 		note: 'C', 
@@ -11,13 +13,11 @@ export class ShapeGUI {
 		accidental: '' // '' or 'b'
 	};
 	private octaveController: any = null;
-	private audioContext: AudioContext | null = null;
+	private audioSystem: AudioSystem | null = null;
 
-	// Checks if the object is a marble shape
-	private isMarble(object: THREE.Object3D): boolean {
-		const name = object.name.toLowerCase();
-		return name.includes('marble') || 
-			   (object.userData && object.userData.shapeType === 'marble');
+	// Checks if the model is a marble shape
+	private isMarble(model: Model): boolean {
+		return model.shapeType === 'marble';
 	}
 
 	/**
@@ -42,66 +42,50 @@ export class ShapeGUI {
 	/**
 	 * Plays the sound for the current note
 	 */
-	private async playNoteSound(): Promise<void> {
-		try {
-			const fileName = `${this.noteData.note}${this.noteData.accidental}${this.noteData.octave}.mp3`;
-			const soundPath = `/sounds/${fileName}`;
+	private playNoteSound(): void {
+		if (!this.audioSystem) return;
 
-			// Create audio context if it doesn't exist
-			if (!this.audioContext) {
-				this.audioContext = new AudioContext();
-			}
-
-			// Fetch and play the audio
-			const response = await fetch(soundPath);
-			if (!response.ok) {
-				console.error(`Sound file not found: ${soundPath}`);
-				return;
-			}
-
-			const arrayBuffer = await response.arrayBuffer();
-			const audioBuffer = await this.audioContext.decodeAudioData(arrayBuffer);
-
-			const source = this.audioContext.createBufferSource();
-			source.buffer = audioBuffer;
-			source.connect(this.audioContext.destination);
-			source.start(0);
-
-			console.log(`Playing note: ${this.getFullNoteName()} (file: ${fileName})`);
-		} catch (error) {
-			console.error('Error playing note sound:', error);
-		}
+		this.audioSystem.playNote(
+			this.noteData.note,
+			this.noteData.octave,
+			this.noteData.accidental
+		);
 	}
 
 	/**
-	 * Creates and displays a GUI for the selected object
-	 * @param object - The Three.js object to control
+	 * Creates and displays a GUI for the selected model
+	 * @param model - The Model instance to control
 	 * @param onDelete - Callback function when delete button is clicked
 	 * @param onRotationChange - Optional callback function when rotation changes
+	 * @param audioSystem - AudioSystem instance
 	 */
-	create(object: THREE.Object3D, onDelete: () => void, onRotationChange?: () => void): void {
+	create(model: Model, onDelete: () => void, onRotationChange?: () => void, audioSystem?: AudioSystem): void {
 		// Remove existing GUI if any
 		this.destroy();
 
 		// Create new GUI
 		this.gui = new GUI();
 		this.gui.title('Shape Properties');
-		this.selectedObject = object;
+		this.selectedModel = model;
+		if (audioSystem) {
+			this.audioSystem = audioSystem;
+		}
 
 		// Position GUI to the right edge
 		this.gui.domElement.style.position = 'fixed';
 		this.gui.domElement.style.top = '0';
 		this.gui.domElement.style.right = '0';
-		
-		const isMarbleShape = this.isMarble(object);
+
+		const isMarbleShape = this.isMarble(model);
 
 		// Only show Piano Note Assignment Section if NOT a marble
 		if (!isMarbleShape) {
 			// Load existing note data if available, otherwise set defaults
-			if ((object as any).userData.note) {
-				this.noteData.note = (object as any).userData.note;
-				this.noteData.octave = (object as any).userData.octave || 4;
-				this.noteData.accidental = (object as any).userData.accidental || '';
+			const existingData = model.getNoteData();
+			if (existingData) {
+				this.noteData.note = existingData.note;
+				this.noteData.octave = existingData.octave || 4;
+				this.noteData.accidental = existingData.accidental || '';
 			} else {
 				// Set default note if none exists
 				this.noteData.note = 'C';
@@ -196,7 +180,7 @@ export class ShapeGUI {
 
 		// Rotation controls
 		this.rotationInDegrees = {
-			z: THREE.MathUtils.radToDeg(object.rotation.z)
+			z: THREE.MathUtils.radToDeg(model.threeObject.rotation.z)
 		};
 
 		const rotationFolder = this.gui.addFolder('Rotation');
@@ -204,7 +188,7 @@ export class ShapeGUI {
 		rotationFolder.add(this.rotationInDegrees, 'z', 0, 360, 1)
 			.name('Rotate (°)')
 			.onChange((value: number) => {
-				object.rotation.z = THREE.MathUtils.degToRad(value);
+				model.threeObject.rotation.z = THREE.MathUtils.degToRad(value);
 				// Call the rotation change callback if provided
 				if (onRotationChange) {
 					onRotationChange();
@@ -246,13 +230,15 @@ export class ShapeGUI {
 	}
 
 	/**
-	 * Updates the object's userData with the current note
+	 * Updates the model's userData with the current note
 	 */
 	private updateObjectNote(): void {
-		if (this.selectedObject) {
-			(this.selectedObject as any).userData.note = this.noteData.note;
-			(this.selectedObject as any).userData.octave = this.noteData.octave;
-			(this.selectedObject as any).userData.accidental = this.noteData.accidental;
+		if (this.selectedModel) {
+			this.selectedModel.setNoteData(
+				this.noteData.note,
+				this.noteData.octave,
+				this.noteData.accidental
+			);
 		}
 	}
 
@@ -281,19 +267,14 @@ export class ShapeGUI {
 			this.gui.destroy();
 			this.gui = null;
 		}
-		this.selectedObject = null;
+		this.selectedModel = null;
 		this.octaveController = null;
-		
-		// Close audio context
-		if (this.audioContext) {
-			this.audioContext.close();
-			this.audioContext = null;
-		}
+		this.audioSystem = null;
 	}
 
-	// Gets the currently selected object
-	getSelectedObject(): THREE.Object3D | null {
-		return this.selectedObject;
+	// Gets the currently selected model
+	getSelectedModel(): Model | null {
+		return this.selectedModel;
 	}
 
 	// Checks if GUI is currently active

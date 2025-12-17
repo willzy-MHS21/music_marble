@@ -69,4 +69,21 @@ export class Model {
     public setRotation(quaternion: THREE.Quaternion): void {
         this.threeObject.quaternion.copy(quaternion);
     }
+
+    public getNoteData(): { note: string; octave: number; accidental: string } | null {
+        if (this.threeObject.userData && this.threeObject.userData.note) {
+            return {
+                note: this.threeObject.userData.note,
+                octave: this.threeObject.userData.octave,
+                accidental: this.threeObject.userData.accidental
+            };
+        }
+        return null;
+    }
+
+    public setNoteData(note: string, octave: number, accidental: string): void {
+        this.threeObject.userData.note = note;
+        this.threeObject.userData.octave = octave;
+        this.threeObject.userData.accidental = accidental;
+    }
 }
