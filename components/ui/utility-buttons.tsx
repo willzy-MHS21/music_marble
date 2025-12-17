@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
-import { Upload, Download, FileDown, Trash2, Menu, Camera } from "lucide-react";
+import { Upload, Download, FileDown, Trash2, Menu, Camera, CameraOff } from "lucide-react";
 import {
   Tooltip,
   TooltipContent,
@@ -15,9 +15,17 @@ interface UtilityButtonsProps {
     onLoad: () => void;
     onClear: () => void;
     onCameraToggle: () => void;
+    isCameraLocked?: boolean;
 }
 
-export default function UtilityButtons({ onImport, onExport, onLoad, onClear, onCameraToggle }: UtilityButtonsProps) {
+export default function UtilityButtons({ 
+    onImport, 
+    onExport, 
+    onLoad, 
+    onClear, 
+    onCameraToggle,
+    isCameraLocked = false 
+}: UtilityButtonsProps) {
     const [showButtons, setShowButtons] = useState(false);
 
     return (
@@ -88,13 +96,25 @@ export default function UtilityButtons({ onImport, onExport, onLoad, onClear, on
 
                     <Tooltip disableHoverableContent>
                         <TooltipTrigger asChild>
-                            <Button onClick={onCameraToggle} size="icon" className="w-10 h-10 rounded-full bg-white/60 hover:bg-white text-black">
-                                <Camera style={{ width: '24px', height: '24px' }} />
+                            <Button 
+                                onClick={onCameraToggle} 
+                                size="icon" 
+                                className={`w-10 h-10 rounded-full text-black ${
+                                    isCameraLocked 
+                                        ? 'bg-blue-500/80 hover:bg-blue-600' 
+                                        : 'bg-white/60 hover:bg-white'
+                                }`}
+                            >
+                                {isCameraLocked ? (
+                                    <CameraOff style={{ width: '24px', height: '24px' }} />
+                                ) : (
+                                    <Camera style={{ width: '24px', height: '24px' }} />
+                                )}
                                 <span className="sr-only">Camera</span>
                             </Button>
                         </TooltipTrigger>
                         <TooltipContent side="right" className="bg-white text-black border-white [&_svg]:!fill-white [&_svg]:!bg-white">
-                            <p>Lock/Unlock camera view</p>
+                            <p>{isCameraLocked ? 'Unlock camera' : 'Lock camera'}</p>
                         </TooltipContent>
                     </Tooltip>
                 </div>

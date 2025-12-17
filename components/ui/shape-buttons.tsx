@@ -2,17 +2,38 @@
 
 import { Button } from "@/components/ui/button";
 import Image from "next/image";
+import { Play, Pause } from "lucide-react";
 
 interface ShapeButtonsProps {
     marble: (event: React.MouseEvent) => void;
     plank: (event: React.MouseEvent) => void;
     cylinder: (event: React.MouseEvent) => void;
     curve: (event: React.MouseEvent) => void;
+    onPlayPause: () => void;
+    isPaused: boolean;
 }
 
-export default function ShapeButtons({ marble, plank, cylinder, curve }: ShapeButtonsProps) {
+export default function ShapeButtons({ marble, plank, cylinder, curve, onPlayPause, isPaused }: ShapeButtonsProps) {
     return (
         <div className="absolute bottom-0 left-1/2 -translate-x-1/2 flex flex-row gap-3 p-2 rounded-3xl pointer-events-auto">
+            <Button 
+                onClick={onPlayPause}
+                variant="ghost"
+                size="icon"
+                className={`w-16 h-16 rounded-2xl hover:scale-120 transition-all ${
+                    isPaused 
+                        ? 'bg-green-500/70 hover:bg-green-500' 
+                        : 'bg-blue-500/70 hover:bg-blue-500'
+                }`}
+            >
+                {isPaused ? (
+                    <Play style={{ width: '45px', height: '45px' }} className="text-white fill-white" />
+                ) : (
+                    <Pause style={{ width: '45px', height: '45px' }} className="text-white fill-white" />
+                )}
+                <span className="sr-only">{isPaused ? 'Play' : 'Pause'}</span>
+            </Button>
+
             <Button 
                 onClick={marble}
                 variant="ghost"
