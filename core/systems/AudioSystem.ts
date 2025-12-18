@@ -22,7 +22,7 @@ export class AudioSystem {
         this.playSound(fileName);
     }
 
-    public playCollisionSound(model1: Model, model2: Model, speed: number) {
+    public playCollisionSound(model1: Model, model2: Model) {
         let targetModel: Model | null = null;
 
         if (model1.shapeType !== 'marble') {

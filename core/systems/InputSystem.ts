@@ -34,6 +34,7 @@ export class InputSystem {
 
     private onKeyDown = (event: KeyboardEvent) => {
         if (event.code === 'Space') {
+            event.preventDefault();
             this.onSpacePressed();
             return;
         }
@@ -86,7 +87,7 @@ export class InputSystem {
     public getWallIntersection(event: MouseEvent) {
         this.updateMousePosition(event);
         this.raycaster.setFromCamera(this.mouse, this.camera);
-        
+
         const intersects = this.raycaster.intersectObject(this.wall);
         if (intersects.length > 0) {
             return intersects[0].point;
@@ -148,7 +149,7 @@ export class InputSystem {
         }
 
         this.isMouseDown = true;
-        
+
         if (this.dragController.isDragging()) {
             if (this.dragType === 'click') {
                 const placeModel = this.dragController.endDrag();
