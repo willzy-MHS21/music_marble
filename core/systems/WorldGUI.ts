@@ -1,12 +1,15 @@
 import GUI from 'lil-gui';
 import { PhysicsSystem } from './PhysicsSystem';
+import { TrajectoryLine } from '../TrajectoryLine';
 
 export class WorldGUI {
     private gui: GUI;
     private physicsSystem: PhysicsSystem;
+    private trajectoryLine: TrajectoryLine;
 
-    constructor(physicsSystem: PhysicsSystem) {
+    constructor(physicsSystem: PhysicsSystem, trajectoryLine: TrajectoryLine) {
         this.physicsSystem = physicsSystem;
+        this.trajectoryLine = trajectoryLine;
         this.gui = new GUI({ title: 'World Settings' });
         this.gui.domElement.style.position = 'absolute';
         this.gui.domElement.style.top = 'auto';
@@ -21,15 +24,20 @@ export class WorldGUI {
     private setupPhysicsFolder() {
         const folder = this.gui.addFolder('Physics');
         const params = {
-            showColliders: true,
+            showPrediction: false,
             speed: this.physicsSystem.speed,
             gravity: Math.abs(this.physicsSystem.getGravityY())
         };
 
-        folder.add(params, 'showColliders')
-            .name('Show Debug Lines')
+        folder.add(params, 'showPrediction')
+            .name('Show Prediction Line')
             .onChange((value: boolean) => {
-                this.physicsSystem.setDebugVisibility(value);
+                // Check if setVisible method exists and call it appropriately
+                if (typeof (this.trajectoryLine as any).setVisible === 'function') {
+                    (this.trajectoryLine as any).setVisible(value);
+                } else if ('visible' in this.trajectoryLine) {
+                    (this.trajectoryLine as any).visible = value;
+                }
             });
 
         folder.add(params, 'speed', 0, 100)
