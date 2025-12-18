@@ -5,24 +5,28 @@ import { BufferGeometryUtils } from "three/examples/jsm/Addons.js";
 
 export class PhysicsSystem {
     world: RAPIER.World | null = null;
-    private debugLines: THREE.LineSegments | null = null;
+    eventQueue: RAPIER.EventQueue | null = null;
+    private gravity = new THREE.Vector3(0, -9.81 * 15, 0);
+
     private activeCollisions: Map<string, number> = new Map();
     private bodyToModelMap: Map<number, Model> = new Map();
-    private eventQueue: RAPIER.EventQueue | null = null;
-    private highlightTimers: Map<Model, NodeJS.Timeout> = new Map();
-    public onCollision?: (model1: Model, model2: Model, speed: number) => void;
+    public onCollision?: (model1: Model, model2: Model) => void;
+
+    private debugLines: THREE.LineSegments | null = null;
+
 
     async init(scene: THREE.Scene) {
         await RAPIER.init();
-        const gravity = { x: 0.0, y: -9.81 * 10, z: 0.0 };
-        this.world = new RAPIER.World(gravity);
+        this.world = new RAPIER.World(this.gravity);
         this.eventQueue = new RAPIER.EventQueue(true);
+        this.setupDebugRenderer(scene);
+    }
 
-        // Setup Debug Renderer
+    private setupDebugRenderer(scene: THREE.Scene) {
         const material = new THREE.LineBasicMaterial({
             color: 0xffffff,
             vertexColors: true,
-            linewidth: 2,
+            linewidth: 1,
             depthTest: false,
             depthWrite: false
         });
@@ -34,105 +38,98 @@ export class PhysicsSystem {
 
     public createBody(model: Model) {
         if (!this.world || model.physicsBody) return;
+        const rigidBody = this.createRigidBody(model);
+        this.createCollider(model, rigidBody);
+        model.physicsBody = rigidBody;
+        this.bodyToModelMap.set(rigidBody.handle, model);
+    }
 
+    public createRigidBody(model: Model, targetWorld?: RAPIER.World): RAPIER.RigidBody {
         const type = model.shapeType;
-        const mesh = model.getMesh();
-        const scale = mesh.scale;
-
         let rigidBodyDesc: RAPIER.RigidBodyDesc;
         if (type === 'marble') {
-            rigidBodyDesc = RAPIER.RigidBodyDesc.dynamic()
-                .setCcdEnabled(true);
+            rigidBodyDesc = RAPIER.RigidBodyDesc.dynamic().setCcdEnabled(true);
         } else {
             rigidBodyDesc = RAPIER.RigidBodyDesc.fixed();
         }
         rigidBodyDesc.setTranslation(model.threeObject.position.x, model.threeObject.position.y, model.threeObject.position.z);
         rigidBodyDesc.setRotation(model.threeObject.quaternion);
-        const rigidBody = this.world.createRigidBody(rigidBodyDesc);
-        
-        let colliderDesc: RAPIER.ColliderDesc;
-        if (type === 'marble') {
-            colliderDesc = RAPIER.ColliderDesc.ball(scale.x);
-            colliderDesc.setRotation(mesh.quaternion);
-            colliderDesc.setRestitution(0); 
-            colliderDesc.setFriction(0.5); 
-            colliderDesc.setActiveEvents(RAPIER.ActiveEvents.COLLISION_EVENTS);
-            const collider = this.world.createCollider(colliderDesc, rigidBody);
-        } else {
-            if (type == 'plank') {
+        const world = targetWorld || this.world!;
+        if (!world) throw new Error("No physics world available");
+        return world.createRigidBody(rigidBodyDesc);
+    }
+
+    public createCollider(model: Model, rigidBody: RAPIER.RigidBody, targetWorld?: RAPIER.World) {
+        const type = model.shapeType;
+        const mesh = model.getMesh();
+        const scale = mesh.scale;
+
+        let colliderDesc: RAPIER.ColliderDesc | null = null;
+
+        if (type == 'curve') {
+            this.createCurveCollider(model, mesh, rigidBody, targetWorld);
+            return;
+        }
+
+        switch (type) {
+            case 'marble':
+                colliderDesc = RAPIER.ColliderDesc.ball(scale.x);
+                break;
+            case 'plank':
                 colliderDesc = RAPIER.ColliderDesc.cuboid(scale.x, scale.y, scale.z);
-                colliderDesc.setRotation(mesh.quaternion);
-                colliderDesc.setRestitution(0.9);
-                colliderDesc.setActiveEvents(RAPIER.ActiveEvents.COLLISION_EVENTS);
-                const collider = this.world.createCollider(colliderDesc, rigidBody);
-            } else if (type == 'cylinder') {
+                break;
+            case 'cylinder':
                 colliderDesc = RAPIER.ColliderDesc.cylinder(scale.y, scale.x);
-                colliderDesc.setRotation(mesh.quaternion);
-                colliderDesc.setRestitution(0.9);
-                colliderDesc.setActiveEvents(RAPIER.ActiveEvents.COLLISION_EVENTS);
-                const collider = this.world.createCollider(colliderDesc, rigidBody);
-            } else if (type == 'curve') {
-                // Use trimesh collider for accurate curve collision
-                const geometry = mesh.geometry.clone();
-                
-                // Apply mesh transformations to geometry
-                geometry.applyMatrix4(mesh.matrix);
-                
-                const mergedGeometry = BufferGeometryUtils.mergeVertices(geometry);
-                
-                // Ensure we have Float32Array for positions
-                const positions = mergedGeometry.getAttribute('position').array;
-                const indices = mergedGeometry.index?.array;
-                
-                if (!indices) {
-                    console.error('Curve geometry has no indices');
-                    return;
-                }
-                
-                const positionsFloat32 = positions instanceof Float32Array 
-                    ? positions 
-                    : new Float32Array(positions);
-                
-                const indicesUint32 = indices instanceof Uint32Array 
-                    ? indices 
-                    : new Uint32Array(indices);
-                
-                colliderDesc = RAPIER.ColliderDesc.trimesh(
-                    positionsFloat32,
-                    indicesUint32
-                );
-                colliderDesc.setRestitution(0.0); 
-                colliderDesc.setFriction(0.5); 
-                colliderDesc.setActiveEvents(RAPIER.ActiveEvents.COLLISION_EVENTS);
-                const collider = this.world.createCollider(colliderDesc, rigidBody);
-                
-                // Clean up
-                geometry.dispose();
-                mergedGeometry.dispose();
-            } else {
+                break;
+            default:
                 console.error(`Unknown shape type: ${type}`);
                 return;
-            }
         }
-        
-        model.physicsBody = rigidBody;
 
-        // Store the mapping between body handle and model
-        this.bodyToModelMap.set(rigidBody.handle, model);
+        if (colliderDesc) {
+            colliderDesc.setRotation(mesh.quaternion);
+            colliderDesc.setRestitution(1);
+            colliderDesc.setActiveEvents(RAPIER.ActiveEvents.COLLISION_EVENTS);
+            const world = targetWorld || this.world!;
+            world.createCollider(colliderDesc, rigidBody);
+        }
+    }
+
+    public createCurveCollider(model: Model, mesh: THREE.Mesh, rigidBody: RAPIER.RigidBody, targetWorld?: RAPIER.World) {
+        const geometry = mesh.geometry.clone();
+        geometry.applyMatrix4(mesh.matrix);
+        const mergedGeometry = BufferGeometryUtils.mergeVertices(geometry);
+
+        const positions = mergedGeometry.getAttribute('position').array;
+        const indices = mergedGeometry.index?.array;
+
+        if (!indices) {
+            console.error('Curve geometry has no indices');
+            return;
+        }
+
+        const positionsFloat32 = positions instanceof Float32Array
+            ? positions
+            : new Float32Array(positions);
+
+        const indicesUint32 = indices instanceof Uint32Array
+            ? indices
+            : new Uint32Array(indices);
+
+        const colliderDesc = RAPIER.ColliderDesc.trimesh(positionsFloat32, indicesUint32);
+        colliderDesc.setRestitution(0.0);
+        colliderDesc.setFriction(0.5);
+        colliderDesc.setActiveEvents(RAPIER.ActiveEvents.COLLISION_EVENTS);
+        const world = targetWorld || this.world!;
+        world.createCollider(colliderDesc, rigidBody);
+        geometry.dispose();
+        mergedGeometry.dispose();
     }
 
     public removeBody(model: Model): void {
         if (!this.world || !model.physicsBody) return;
 
-        // Clear any active highlight timer
-        const timer = this.highlightTimers.get(model);
-        if (timer) {
-            clearTimeout(timer);
-            this.highlightTimers.delete(model);
-        }
-
         this.bodyToModelMap.delete(model.physicsBody.handle);
-
         this.world.removeRigidBody(model.physicsBody);
         model.physicsBody = null;
     }
@@ -141,68 +138,64 @@ export class PhysicsSystem {
         models.forEach(model => this.removeBody(model));
     }
 
-    // Update rotation of physics body
     public updateBodyRotation(model: Model): void {
         if (!model.physicsBody) return;
-
-        // Update the rigid body's rotation
         model.physicsBody.setRotation(model.threeObject.quaternion, true);
-
-        // Recreate the body for curves and static objects
         if (!model.physicsBody.isDynamic() || model.shapeType === 'curve') {
             this.removeBody(model);
             this.createBody(model);
         }
     }
-    
+
     public step() {
         if (!this.world || !this.eventQueue) return;
 
         this.world.step(this.eventQueue);
-
         const currentTime = performance.now();
 
-        // Process collision events
         this.eventQueue.drainCollisionEvents((handle1, handle2, started) => {
-            // Get colliders from handles
-            const collider1 = this.world!.getCollider(handle1);
-            const collider2 = this.world!.getCollider(handle2);
-
-            if (!collider1 || !collider2) return;
-
-            // Get parent rigid bodies
-            const body1 = collider1.parent();
-            const body2 = collider2.parent();
-
-            if (!body1 || !body2) return;
-
-            // Get models from rigid body handles
-            const model1 = this.bodyToModelMap.get(body1.handle);
-            const model2 = this.bodyToModelMap.get(body2.handle);
-
-            if (model1 && model2 && model1.physicsBody && model2.physicsBody) {
-                // Use body handles for tracking - this treats entire rigid body as one
-                const collisionKey = `${body1.handle}-${body2.handle}`;
-                
-                if (started) {
-                    const lastCollisionTime = this.activeCollisions.get(collisionKey);
-                    
-                    // Only play sound if this is a new collision (no recent collision in last 1 second)
-                    if (!lastCollisionTime || currentTime - lastCollisionTime > 1000) {
-                        this.activeCollisions.set(collisionKey, currentTime);
-                        this.handleCollision(model1.physicsBody, model2.physicsBody, model1, model2);
-                    }
-                }
-            }
+            this.processCollisionEvent(handle1, handle2, started, currentTime);
         });
     }
 
+    private processCollisionEvent(handle1: number, handle2: number, started: boolean, currentTime: number) {
+        if (!started) return;
+
+        const collider1 = this.world!.getCollider(handle1);
+        const collider2 = this.world!.getCollider(handle2);
+        if (!collider1 || !collider2) return;
+
+        const body1 = collider1.parent();
+        const body2 = collider2.parent();
+        if (!body1 || !body2) return;
+
+        const model1 = this.bodyToModelMap.get(body1.handle);
+        const model2 = this.bodyToModelMap.get(body2.handle);
+
+        if (model1 && model2 && model1.physicsBody && model2.physicsBody) {
+            const collisionKey = `${body1.handle}-${body2.handle}`;
+            const lastCollisionTime = this.activeCollisions.get(collisionKey);
+
+            if (!lastCollisionTime || currentTime - lastCollisionTime > 150) {
+                this.activeCollisions.set(collisionKey, currentTime);
+                this.handleCollision(model1.physicsBody, model2.physicsBody, model1, model2);
+            }
+        }
+    }
+
     public updateDebug() {
-        // Update Debug Geometry 
         if (this.world && this.debugLines) {
+            if (!this.debugLines.visible) return;
+
             const { vertices, colors } = this.world.debugRender();
             this.debugLines.geometry.setAttribute('position', new THREE.BufferAttribute(vertices, 3));
             this.debugLines.geometry.setAttribute('color', new THREE.BufferAttribute(colors, 4));
+        }
+    }
+
+    public setDebugVisibility(visible: boolean) {
+        if (this.debugLines) {
+            this.debugLines.visible = visible;
         }
     }
 
@@ -221,71 +214,105 @@ export class PhysicsSystem {
     }
 
     private handleCollision(body1: RAPIER.RigidBody, body2: RAPIER.RigidBody, model1: Model, model2: Model): void {
-        // Find which body is the marble and which is the shape
+        // Identify Marble vs Shape
         let marbleBody: RAPIER.RigidBody | null = null;
-        let shapeBody: RAPIER.RigidBody | null = null;
-        let marbleModel: Model | null = null;
         let shapeModel: Model | null = null;
+        let marbleModel: Model | null = null;
 
         if (body1.isDynamic() && model1.shapeType === 'marble') {
             marbleBody = body1;
-            shapeBody = body2;
             marbleModel = model1;
             shapeModel = model2;
         } else if (body2.isDynamic() && model2.shapeType === 'marble') {
             marbleBody = body2;
-            shapeBody = body1;
             marbleModel = model2;
             shapeModel = model1;
         }
 
-        if (!marbleBody || !shapeBody || !shapeModel) return;
+        if (!marbleBody || !shapeModel || !marbleModel) return;
 
-        // Get the velocity of the marble to determine impact strength
-        const velocity = marbleBody.linvel();
-        const speed = Math.sqrt(velocity.x * velocity.x + velocity.y * velocity.y + velocity.z * velocity.z);
+        // Skip bouncing logic for curves - they are for rolling
+        if (shapeModel.shapeType === 'curve') return;
 
-        // Only react if marble is moving fast enough 
-        if (speed < 0.5) return;
+        // Notify listener (Play Sound)
+        if (this.onCollision) {
+            this.onCollision(marbleModel, shapeModel);
+        }
 
-        // Highlight the shape that was hit
-        this.highlightShape(shapeModel);
+        const targetModel = this.getNextModel(marbleModel, shapeModel);
 
-        // Highlight the shape that was hit
-        this.highlightShape(shapeModel);
-
-        // Notify listener
-        if (this.onCollision && marbleModel && shapeModel) {
-            this.onCollision(marbleModel, shapeModel, speed);
+        if (targetModel) {
+            const jumpVelocity = this.calculateVelocity(marbleModel, targetModel);
+            marbleBody.setLinvel(jumpVelocity, true);
+            marbleBody.setAngvel({ x: 0, y: 0, z: 0 }, true);
+        } else {
+            const currentVel = marbleBody.linvel();
+            if (currentVel.y > 0) {
+                marbleBody.setLinvel({
+                    x: currentVel.x,
+                    y: currentVel.y * 0.5,
+                    z: currentVel.z
+                }, true);
+            }
         }
     }
 
-    private highlightShape(model: Model): void {
-        // Clear any existing timer for this model
-        const existingTimer = this.highlightTimers.get(model);
-        if (existingTimer) {
-            clearTimeout(existingTimer);
+    // Determine the next target block using Global Y-Axis Sorting (Highest to Lowest)
+    private getNextModel(marble: Model, currentBlock: Model): Model | null {
+        if (currentBlock.nextTarget) {
+            return currentBlock.nextTarget;
         }
-
-        // Highlight the model
-        model.highlight();
-
-        // Set a timer to unhighlight after 1 second
-        const timer = setTimeout(() => {
-            model.unhighlight();
-            this.highlightTimers.delete(model);
-        }, 1000);
-
-        this.highlightTimers.set(model, timer);
+        const allBlocks = Array.from(this.bodyToModelMap.values()).filter(m =>
+            m.shapeType !== 'marble' && m.shapeType !== 'curve'
+        );
+        allBlocks.sort((a, b) => {
+            const yDiff = b.threeObject.position.y - a.threeObject.position.y;
+            if (Math.abs(yDiff) > 0.01) return yDiff;
+            return 0;
+        });
+        const currentIndex = allBlocks.indexOf(currentBlock);
+        if (currentIndex !== -1 && currentIndex < allBlocks.length - 1) {
+            return allBlocks[currentIndex + 1];
+        }
+        return null;
     }
 
+    // Calculate velocity needed to hit the target model 
+    // t is derived from the distance and a constant speed factor
+    // projectile motion formula: v = (p - p0 - 0.5 * g * t^2) / t
+    public speed: number = 60;
+
+    public setGravity(y: number) {
+        this.gravity.y = y;
+        if (this.world) {
+            this.world.gravity = { x: 0.0, y: y, z: 0.0 };
+        }
+    }
+
+    public getGravityY(): number {
+        return this.gravity.y;
+    }
+
+    public getGravity(): THREE.Vector3 {
+        return this.gravity.clone();
+    }
+
+    public calculateVelocity(marble: Model, target: Model): THREE.Vector3 {
+        const initial_position = marble.threeObject.position.clone();
+        const final_position = target.threeObject.position.clone();
+        const distance = initial_position.distanceTo(final_position);
+
+        // Use the instance property speed instead of hardcoded value
+        let t = distance / this.speed;
+
+        if (t < 0.25) t = 0.25;
+        const gravity = this.gravity;
+        const displacement = new THREE.Vector3().subVectors(final_position, initial_position);
+        const velocity = displacement.sub(gravity.clone().multiplyScalar(0.5 * t * t)).divideScalar(t);
+        return velocity;
+    }
 
     public dispose(): void {
-
-        // Clear all highlight timers
-        this.highlightTimers.forEach(timer => clearTimeout(timer));
-        this.highlightTimers.clear();
-
         this.bodyToModelMap.clear();
         this.activeCollisions.clear();
     }

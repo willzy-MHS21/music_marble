@@ -50,7 +50,7 @@ export class SelectionSystem {
             },
             this.audioSystem
         );
-        
+
         if (this.onSelectionChangeCallback) {
             this.onSelectionChangeCallback(model);
         }
@@ -60,7 +60,7 @@ export class SelectionSystem {
         this.removeOutline();
         this.selectedModel = null;
         this.shapeGUI.destroy();
-        
+
         if (this.onSelectionChangeCallback) {
             this.onSelectionChangeCallback(null);
         }
@@ -69,13 +69,13 @@ export class SelectionSystem {
     public getSelectedModel(): Model | null {
         return this.selectedModel;
     }
-    
+
     private addOutline(object: THREE.Object3D) {
         object.traverse((child) => {
             if (child instanceof THREE.Mesh && child.geometry && !(child as any).isOutline) {
                 try {
                     const outlineMaterial = new THREE.MeshBasicMaterial({
-                        color: 0x00aaff,
+                        color: 'red',
                         side: THREE.BackSide,
                     });
 
