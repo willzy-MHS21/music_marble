@@ -266,7 +266,6 @@ export class PhysicsSystem {
         if (currentIndex !== -1 && currentIndex < allBlocks.length - 1) {
             return allBlocks[currentIndex + 1];
         }
-        console.log("allBlocks", allBlocks);
         return null;
     }
 
