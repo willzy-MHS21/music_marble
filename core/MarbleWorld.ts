@@ -10,6 +10,9 @@ import { ModelManager } from './ModelManager';
 import { DragController } from './systems/DragSystem';
 import { Model } from './Model';
 import { AudioSystem } from './systems/AudioSystem';
+import { CameraController } from './CameraController';
+import { MarbleManager } from './MarbleManager';
+import { SceneManager } from './SceneManager';
 
 export class MarbleWorld {
     private scene: THREE.Scene;
@@ -17,23 +20,12 @@ export class MarbleWorld {
     private renderer: THREE.WebGLRenderer;
     private controls: OrbitControls;
     private wall: THREE.Mesh;
-    private isPaused: boolean = true; // Start paused
+    private isPaused: boolean = true;
 
     private lastTime: number = 0;
     private accumulator: number = 0;
     private readonly fixedTimeStep: number = 1 / 60;
 
-    // Camera lock functionality
-    private isCameraLocked: boolean = false;
-    private cameraOffset: THREE.Vector3 = new THREE.Vector3(-15, 15, 15);
-    private savedControlsState: {
-        enabled: boolean;
-        target: THREE.Vector3;
-        position: THREE.Vector3;
-    } | null = null;
-    private marbleGoalTimers: Map<Model, NodeJS.Timeout> = new Map();
-    private marbleFallTimers: Map<Model, NodeJS.Timeout> = new Map();
-    private marbleInitialPositions: Map<Model, THREE.Vector3> = new Map();
     private highlightTimers: Map<Model, any> = new Map();
 
     // Systems
@@ -46,6 +38,9 @@ export class MarbleWorld {
     private audioSystem!: AudioSystem;
     private trajectoryLine!: TrajectoryLine;
     private worldGUI!: WorldGUI;
+    private cameraController!: CameraController;
+    private marbleManager!: MarbleManager;
+    private sceneManager!: SceneManager;
 
     constructor() {
         this.scene = this.createScene();
@@ -54,6 +49,9 @@ export class MarbleWorld {
         this.addLights();
         this.wall = this.createWall();
         this.controls = this.setupControls();
+        
+        // Initialize camera controller early since it's used immediately
+        this.cameraController = new CameraController(this.camera, this.controls);
 
         this.animate = this.animate.bind(this);
         this.handleResize = this.handleResize.bind(this);
@@ -72,24 +70,27 @@ export class MarbleWorld {
 
         // Initialize Audio System
         const audioContext = this.assetLoader.getAudioContext();
-        await audioContext.resume();
         const audioBuffers = this.assetLoader.getAllAudio();
         this.audioSystem = new AudioSystem(audioContext, audioBuffers);
 
-        // play audio, light up shape, and handle final collision
+        // Create Model Manager
+        const preLoadedModels = this.assetLoader.getAllModels();
+        this.modelManager = new ModelManager(this.scene, preLoadedModels);
+
+        // Initialize new managers (camera controller already initialized in constructor)
+        this.marbleManager = new MarbleManager(this.modelManager, this.physics);
+        this.sceneManager = new SceneManager(this.modelManager, this.physics, this.marbleManager);
+
+        // Play audio, light up shape, and handle final collision
         this.physics.onCollision = (model1, model2) => {
             this.audioSystem.playCollisionSound(model1, model2);
             this.highlightShape(model2);
             this.onMarbleCollision(model1, model2);
         };
 
-        // Create Model Manager
-        const preLoadedModels = this.assetLoader.getAllModels();
-        this.modelManager = new ModelManager(this.scene, preLoadedModels);
-
         // Create other Systems
         this.trajectoryLine = new TrajectoryLine(this.scene, this.physics);
-        this.worldGUI = new WorldGUI(this.physics);
+        this.worldGUI = new WorldGUI(this.physics, this.trajectoryLine);
         this.selection = new SelectionSystem(this.audioSystem);
         this.selection.setOnDeleteCallback((model) => { this.onModelDeleted(model); });
         this.selection.setOnRotationChangeCallback((model) => { this.onModelRotationChanged(model); });
@@ -105,7 +106,6 @@ export class MarbleWorld {
             (model) => this.onModelDragStart(model),
             () => this.onEmptySpaceClicked(),
             () => { this.togglePlayPause(); });
-
     }
 
     public togglePlayPause(): boolean {
@@ -130,20 +130,17 @@ export class MarbleWorld {
     }
 
     private highlightShape(model: Model): void {
-        // Clear any existing timer for this model
         const existingTimer = this.highlightTimers.get(model);
         if (existingTimer) {
             clearTimeout(existingTimer);
         }
 
-        // Highlight the model
         model.highlight();
 
-        // Set a timer to unhighlight after 1 second
         const timer = setTimeout(() => {
             model.unhighlight();
             this.highlightTimers.delete(model);
-        }, 300); // Shorter highlight for snappier feel
+        }, 300);
 
         this.highlightTimers.set(model, timer);
     }
@@ -152,9 +149,8 @@ export class MarbleWorld {
         this.physics.createBody(model);
         this.selection.select(model);
 
-        // Store initial position for marbles
         if (model.shapeType === 'marble') {
-            this.marbleInitialPositions.set(model, model.threeObject.position.clone());
+            this.marbleManager.storeInitialPosition(model);
         }
     }
 
@@ -176,9 +172,8 @@ export class MarbleWorld {
         this.physics.removeBody(model);
         this.modelManager.removeModel(model);
 
-        // Remove initial position tracking
         if (model.shapeType === 'marble') {
-            this.marbleInitialPositions.delete(model);
+            this.marbleManager.removeInitialPosition(model);
         }
     }
 
@@ -191,332 +186,64 @@ export class MarbleWorld {
     }
 
     private onMarbleCollision(model1: Model, model2: Model) {
-        // Check if one of the models is a marble
         const marble = model1.shapeType === 'marble' ? model1 :
             model2.shapeType === 'marble' ? model2 : null;
 
         if (marble) {
-            // Check for goal collision
             const otherShape = model1.shapeType === 'marble' ? model2 : model1;
-            this.checkGoalCollision(marble, otherShape);
+            this.marbleManager.checkGoalCollision(marble, otherShape, (removedMarble) => {
+                this.onMarbleRemoved(removedMarble);
+            });
         }
     }
 
-    private checkGoalCollision(marble: Model, otherShape: Model) {
-        // Don't start a new timer if one already exists for this marble
-        if (this.marbleGoalTimers.has(marble)) return;
-
-        // Get the goal shape (lowest Y position)
-        const goalShape = this.getGoalShape();
-        if (!goalShape) return;
-
-        // Check if the marble collided with the goal shape
-        if (otherShape === goalShape) {
-            console.log('Marble touched the goal! Disappearing in 1 second...');
-
-            // Set a timer to remove the marble after 1 second
-            const timer = setTimeout(() => {
-                this.removeMarble(marble);
-                this.marbleGoalTimers.delete(marble);
-            }, 1000);
-
-            this.marbleGoalTimers.set(marble, timer);
-        }
-    }
-
-    private getGoalShape(): Model | null {
-        const models = this.modelManager.getAllModels();
-        const nonMarbleModels = models.filter(model => model.shapeType !== 'marble');
-
-        if (nonMarbleModels.length === 0) return null;
-
-        // Find the model with the lowest Y position
-        let lowestModel = nonMarbleModels[0];
-        let lowestY = lowestModel.threeObject.position.y;
-
-        for (const model of nonMarbleModels) {
-            if (model.threeObject.position.y < lowestY) {
-                lowestY = model.threeObject.position.y;
-                lowestModel = model;
-            }
-        }
-
-        return lowestModel;
-    }
-
-    private removeMarble(marble: Model) {
-        // Get the initial position before removing
-        const initialPosition = this.marbleInitialPositions.get(marble);
-
+    private onMarbleRemoved(marble: Model): void {
         // Check if camera was locked to this marble
-        const shouldRelockCamera = this.isCameraLocked && this.getFirstMarble() === marble;
+        const shouldRelockCamera = this.cameraController.isCameraLockedToMarble() && 
+                                   this.getFirstMarble() === marble;
 
         // Unlock camera temporarily if it was following this marble
         if (shouldRelockCamera) {
-            this.toggleCameraLock();
+            this.cameraController.unlockCamera();
         }
 
-        // Clear all timers for this marble
-        if (this.marbleGoalTimers.has(marble)) {
-            clearTimeout(this.marbleGoalTimers.get(marble)!);
-            this.marbleGoalTimers.delete(marble);
-        }
-        if (this.marbleFallTimers.has(marble)) {
-            clearTimeout(this.marbleFallTimers.get(marble)!);
-            this.marbleFallTimers.delete(marble);
-        }
-
-        // Remove initial position tracking
-        this.marbleInitialPositions.delete(marble);
-
-        // Remove the marble from physics and scene
-        this.physics.removeBody(marble);
-        this.modelManager.removeModel(marble);
-
-        // Pause the scene - set to true to ensure it's paused
+        // Pause the scene
         this.isPaused = true;
 
-        // Spawn a new marble at the initial position 
-        if (initialPosition) {
-            const newMarble = this.modelManager.spawnModel('marble', initialPosition.clone());
-            this.physics.createBody(newMarble);
-            this.marbleInitialPositions.set(newMarble, initialPosition.clone());
-            console.log('New marble spawned at initial position');
-
-            // Re-lock camera to the new marble if it was locked before
-            if (shouldRelockCamera) {
-                this.toggleCameraLock();
-            }
+        // Re-lock camera to the new marble if it was locked before
+        if (shouldRelockCamera) {
+            this.toggleCameraLock();
         }
-    }
-
-    private checkMarbleFallOffTrack() {
-        const models = this.modelManager.getAllModels();
-        const marbles = models.filter(model => model.shapeType === 'marble');
-        const goalShape = this.getGoalShape();
-
-        if (!goalShape) return;
-
-        const lowestY = goalShape.threeObject.position.y;
-
-        marbles.forEach(marble => {
-            const marbleY = marble.threeObject.position.y;
-
-            // Check if marble has fallen below the lowest shape
-            if (marbleY < lowestY && !this.marbleFallTimers.has(marble) && !this.marbleGoalTimers.has(marble)) {
-                console.log('Marble fell below track! Removing in 1 second...');
-
-                // Start 1-second timer before removal
-                const timer = setTimeout(() => {
-                    this.removeMarble(marble);
-                    this.marbleFallTimers.delete(marble);
-                }, 1000);
-
-                this.marbleFallTimers.set(marble, timer);
-            }
-        });
-    }
-
-    public toggleCameraLock(): boolean {
-        this.isCameraLocked = !this.isCameraLocked;
-
-        if (this.isCameraLocked) {
-            // Find the first marble to follow
-            const marble = this.getFirstMarble();
-            if (!marble) {
-                console.warn('No marble found in scene. Cannot lock camera.');
-                this.isCameraLocked = false;
-                return false;
-            }
-
-            console.log('Camera locked to marble at position:', marble.threeObject.position);
-
-            // Save current controls state
-            this.savedControlsState = {
-                enabled: this.controls.enabled,
-                target: this.controls.target.clone(),
-                position: this.camera.position.clone()
-            };
-
-            // Keep orbit controls enabled for user interaction
-            this.controls.enabled = true;
-
-            // Set target to marble position
-            const marblePos = marble.threeObject.position.clone();
-            this.controls.target.copy(marblePos);
-
-            // Position camera 
-            const currentDistance = this.camera.position.distanceTo(marblePos);
-            if (currentDistance < 10 || currentDistance > 80) {
-                // Camera is too close or too far, reposition it
-                const offset = new THREE.Vector3(15, 20, 30);
-                this.camera.position.set(
-                    marblePos.x + offset.x,
-                    marblePos.y + offset.y,
-                    marblePos.z + offset.z
-                );
-                console.log('Adjusted camera position to:', this.camera.position);
-            }
-
-            this.controls.update();
-
-            console.log('Camera target set to:', this.controls.target);
-            console.log('Camera position:', this.camera.position);
-        } else {
-            console.log('Camera unlocked');
-            // Restore controls state
-            if (this.savedControlsState) {
-                this.controls.enabled = this.savedControlsState.enabled;
-                this.controls.target.copy(this.savedControlsState.target);
-                this.camera.position.copy(this.savedControlsState.position);
-                this.controls.update();
-            } else {
-                this.controls.enabled = true;
-            }
-        }
-
-        return this.isCameraLocked;
     }
 
     private getFirstMarble(): Model | null {
         const models = this.modelManager.getAllModels();
-        const marble = models.find(model => model.shapeType === 'marble') || null;
-        return marble;
+        return models.find(model => model.shapeType === 'marble') || null;
     }
 
-    private updateCameraToFollowMarble(marble: Model, immediate: boolean = false) {
-        const marblePosition = marble.threeObject.position;
-
-        // Calculate the offset between current camera and current target
-        const currentOffset = new THREE.Vector3().subVectors(this.camera.position, this.controls.target);
-
-        // Update target to marble position
-        const newTarget = marblePosition.clone();
-
-        // Update camera position to maintain the same offset from the new target
-        const newCameraPosition = new THREE.Vector3().addVectors(newTarget, currentOffset);
-
-        if (immediate) {
-            this.controls.target.copy(newTarget);
-            this.camera.position.copy(newCameraPosition);
-        } else {
-            // Smoothly update both target and camera position
-            this.controls.target.lerp(newTarget, 0.15);
-            this.camera.position.lerp(newCameraPosition, 0.15);
-        }
-
-        // Ensure controls update is called
-        this.controls.update();
+    public toggleCameraLock(): boolean {
+        return this.cameraController.toggleCameraLock(() => this.getFirstMarble());
     }
 
     public isCameraLockedToMarble(): boolean {
-        return this.isCameraLocked;
+        return this.cameraController.isCameraLockedToMarble();
     }
 
     public clearALL() {
-        // Unlock camera when clearing
-        if (this.isCameraLocked) {
-            this.toggleCameraLock();
-        }
-
-        // Clear all pending marble timers
-        this.marbleGoalTimers.forEach(timer => clearTimeout(timer));
-        this.marbleGoalTimers.clear();
-        this.marbleFallTimers.forEach(timer => clearTimeout(timer));
-        this.marbleFallTimers.clear();
-        this.marbleInitialPositions.clear();
-
+        this.cameraController.unlockCamera();
+        this.marbleManager.clearAllTimers();
         this.physics.clearAllBodies(this.modelManager.getAllModels());
         this.modelManager.clear();
         this.selection.deselect();
     }
 
-    public exportScene() {
-        const models = this.modelManager.getAllModels().filter(model => model.shapeType != 'marble');
-
-        // Get marble's initial position if it exists
-        const marbles = this.modelManager.getAllModels().filter(model => model.shapeType === 'marble');
-        let marbleInitialPosition = null;
-        if (marbles.length > 0) {
-            const marble = marbles[0];
-            const initialPos = this.marbleInitialPositions.get(marble);
-            if (initialPos) {
-                marbleInitialPosition = {
-                    x: initialPos.x,
-                    y: initialPos.y,
-                    z: initialPos.z,
-                };
-            }
-        }
-
-        const sceneData = {
-            models: models.map(model => ({
-                shapeType: model.shapeType,
-                position: {
-                    x: model.threeObject.position.x,
-                    y: model.threeObject.position.y,
-                    z: model.threeObject.position.z,
-                },
-                rotation: {
-                    x: model.threeObject.quaternion.x,
-                    y: model.threeObject.quaternion.y,
-                    z: model.threeObject.quaternion.z,
-                    w: model.threeObject.quaternion.w,
-                },
-                userData: model.threeObject.userData,
-            })),
-            marbleInitialPosition: marbleInitialPosition,
-        }
-        return JSON.stringify(sceneData);
+    public exportScene(): string {
+        return this.sceneManager.exportScene();
     }
 
     public importScene(sceneData: any) {
         this.clearALL();
-
-        if (sceneData.models) {
-            sceneData.models.forEach((modelData: any) => {
-                const position = new THREE.Vector3(
-                    modelData.position.x,
-                    modelData.position.y,
-                    modelData.position.z
-                );
-
-                const model = this.modelManager.spawnModel(modelData.shapeType, position);
-
-                if (modelData.rotation) {
-                    model.threeObject.quaternion.set(
-                        modelData.rotation.x,
-                        modelData.rotation.y,
-                        modelData.rotation.z,
-                        modelData.rotation.w
-                    );
-                }
-
-                if (modelData.userData) {
-                    model.threeObject.userData = modelData.userData;
-                }
-                this.physics.createBody(model);
-
-                // Store initial position for marbles
-                if (model.shapeType === 'marble') {
-                    this.marbleInitialPositions.set(model, position.clone());
-                }
-            });
-        }
-
-        // Restore marble's initial position if it was saved
-        if (sceneData.marbleInitialPosition) {
-            const marblePos = new THREE.Vector3(
-                sceneData.marbleInitialPosition.x,
-                sceneData.marbleInitialPosition.y,
-                sceneData.marbleInitialPosition.z
-            );
-
-            // Spawn a marble at the initial position
-            const marble = this.modelManager.spawnModel('marble', marblePos.clone());
-            this.physics.createBody(marble);
-            this.marbleInitialPositions.set(marble, marblePos.clone());
-        }
+        this.sceneManager.importScene(sceneData);
     }
 
     // THREE.JS Setup
@@ -561,25 +288,35 @@ export class MarbleWorld {
     }
 
     private addLights() {
-        const ambientLight = new THREE.AmbientLight(0xffffff, 0.8);
+        const ambientLight = new THREE.AmbientLight(0xffffff, 0.25);
         this.scene.add(ambientLight);
-        const directionalLight = new THREE.DirectionalLight(0xffffff, 1.5);
-        directionalLight.position.set(10, 10, 10);
-        directionalLight.castShadow = true;
-        directionalLight.shadow.mapSize.width = 2048;
-        directionalLight.shadow.mapSize.height = 2048;
-        directionalLight.shadow.camera.near = 0.5;
-        directionalLight.shadow.camera.far = 50;
-        directionalLight.shadow.camera.left = -20;
-        directionalLight.shadow.camera.right = 20;
-        directionalLight.shadow.camera.top = 20;
-        directionalLight.shadow.camera.bottom = -20;
-        this.scene.add(directionalLight);
+        
+        // Spotlight from top left for realistic gradient shadows
+        const spotlight = new THREE.SpotLight(0xffffff, 2.5);
+        spotlight.position.set(-80, 80, 50);
+        spotlight.target.position.set(0, 0, 0);
+        spotlight.angle = Math.PI / 3;
+        spotlight.penumbra = 0.5;
+        spotlight.decay = 1;
+        spotlight.distance = 200;
+        spotlight.castShadow = true;
+        spotlight.shadow.mapSize.width = 2048;
+        spotlight.shadow.mapSize.height = 2048;
+        spotlight.shadow.camera.near = 10;
+        spotlight.shadow.camera.far = 200;
+        spotlight.shadow.bias = -0.0001;
+        this.scene.add(spotlight);
+        this.scene.add(spotlight.target);
+        
+        // Fill light for even coverage
+        const fillLight = new THREE.DirectionalLight(0xffffff, 0.3);
+        fillLight.position.set(30, 40, 30);
+        this.scene.add(fillLight);
     }
 
     private createWall() {
         const planeGeometry = new THREE.PlaneGeometry(200, 200);
-        const planeMaterial = new THREE.MeshStandardMaterial({ color: 0xF4D3B0 });
+        const planeMaterial = new THREE.MeshStandardMaterial({ color: 0xEDFCFF  });
         const wall = new THREE.Mesh(planeGeometry, planeMaterial);
 
         wall.receiveShadow = true;
@@ -591,15 +328,12 @@ export class MarbleWorld {
         requestAnimationFrame(this.animate);
         if (!this.physics || !this.modelManager) return;
 
-        this.physics.updateDebug();
-
         if (!this.isPaused) {
             const now = performance.now();
             if (this.lastTime === 0) this.lastTime = now;
             let deltaTime = (now - this.lastTime) / 1000;
             this.lastTime = now;
 
-            // Cap deltaTime to prevent spiral of death
             if (deltaTime > 0.1) deltaTime = 0.1;
 
             this.accumulator += deltaTime;
@@ -613,18 +347,19 @@ export class MarbleWorld {
             const models = this.modelManager.getAllModels();
             this.physics.syncAllModels(models);
 
-            // Check if any marbles have fallen below the track
-            this.checkMarbleFallOffTrack();
+            this.marbleManager.checkMarbleFallOffTrack((marble) => {
+                this.onMarbleRemoved(marble);
+            });
         } else {
             const models = this.modelManager.getAllModels();
             this.trajectoryLine.update(models);
         }
 
         // Update camera if locked (even when paused)
-        if (this.isCameraLocked) {
+        if (this.cameraController.isCameraLockedToMarble()) {
             const marble = this.getFirstMarble();
             if (marble) {
-                this.updateCameraToFollowMarble(marble);
+                this.cameraController.updateCameraToFollowMarble(marble);
             }
         }
 
@@ -643,14 +378,9 @@ export class MarbleWorld {
     }
 
     dispose() {
-        // Clear all pending timers
-        this.marbleGoalTimers.forEach(timer => clearTimeout(timer));
-        this.marbleGoalTimers.clear();
-        this.marbleFallTimers.forEach(timer => clearTimeout(timer));
-        this.marbleFallTimers.clear();
+        this.marbleManager.clearAllTimers();
         this.highlightTimers.forEach(timer => clearTimeout(timer));
         this.highlightTimers.clear();
-        this.marbleInitialPositions.clear();
 
         window.removeEventListener('resize', this.handleResize);
         if (this.worldGUI) this.worldGUI.dispose();

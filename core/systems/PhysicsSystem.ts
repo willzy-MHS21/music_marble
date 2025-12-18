@@ -12,28 +12,10 @@ export class PhysicsSystem {
     private bodyToModelMap: Map<number, Model> = new Map();
     public onCollision?: (model1: Model, model2: Model) => void;
 
-    private debugLines: THREE.LineSegments | null = null;
-
-
     async init(scene: THREE.Scene) {
         await RAPIER.init();
         this.world = new RAPIER.World(this.gravity);
         this.eventQueue = new RAPIER.EventQueue(true);
-        this.setupDebugRenderer(scene);
-    }
-
-    private setupDebugRenderer(scene: THREE.Scene) {
-        const material = new THREE.LineBasicMaterial({
-            color: 0xffffff,
-            vertexColors: true,
-            linewidth: 1,
-            depthTest: false,
-            depthWrite: false
-        });
-        const geometry = new THREE.BufferGeometry();
-        this.debugLines = new THREE.LineSegments(geometry, material);
-        this.debugLines.renderOrder = 999;
-        scene.add(this.debugLines);
     }
 
     public createBody(model: Model) {
@@ -180,22 +162,6 @@ export class PhysicsSystem {
                 this.activeCollisions.set(collisionKey, currentTime);
                 this.handleCollision(model1.physicsBody, model2.physicsBody, model1, model2);
             }
-        }
-    }
-
-    public updateDebug() {
-        if (this.world && this.debugLines) {
-            if (!this.debugLines.visible) return;
-
-            const { vertices, colors } = this.world.debugRender();
-            this.debugLines.geometry.setAttribute('position', new THREE.BufferAttribute(vertices, 3));
-            this.debugLines.geometry.setAttribute('color', new THREE.BufferAttribute(colors, 4));
-        }
-    }
-
-    public setDebugVisibility(visible: boolean) {
-        if (this.debugLines) {
-            this.debugLines.visible = visible;
         }
     }
 

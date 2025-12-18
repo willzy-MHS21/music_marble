@@ -6,15 +6,27 @@ import { PhysicsSystem } from './systems/PhysicsSystem';
 export class TrajectoryLine {
     private scene: THREE.Scene;
     private line: THREE.Line | null = null;
-
     private physicsSystem: PhysicsSystem;
+    private isVisible: boolean = false;
 
     constructor(scene: THREE.Scene, physicsSystem: PhysicsSystem) {
         this.scene = scene;
         this.physicsSystem = physicsSystem;
     }
 
+    public setVisible(visible: boolean) {
+        this.isVisible = visible;
+        if (!visible) {
+            this.clear();
+        }
+    }
+
     public update(models: Model[]) {
+        if (!this.isVisible) {
+            this.clear();
+            return;
+        }
+
         const marble = models.find(m => m.shapeType === 'marble');
         if (!marble || !marble.physicsBody) {
             this.clear();
