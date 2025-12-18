@@ -5,6 +5,7 @@ export class Model {
     public threeObject: THREE.Object3D;
     public shapeType: string;
     public physicsBody: RAPIER.RigidBody | null = null;
+    public nextTarget: Model | null = null;
     private isLit: boolean = false;
     private lights: THREE.PointLight[] = [];
     private lightColors: THREE.Color[] = [
@@ -26,15 +27,15 @@ export class Model {
         const randomColor = this.lightColors[Math.floor(Math.random() * this.lightColors.length)];
 
         // Create one point light in the middle of the model
-        const light = new THREE.PointLight(randomColor, 5, 15); 
+        const light = new THREE.PointLight(randomColor, 5, 15);
         light.position.copy(this.threeObject.position);
-        light.castShadow = false; 
-        
+        light.castShadow = false;
+
         // Add light to the scene through the parent
         if (this.threeObject.parent) {
             this.threeObject.parent.add(light);
         }
-        
+
         this.lights.push(light);
     }
 
@@ -49,7 +50,7 @@ export class Model {
             }
             light.dispose();
         });
-        
+
         this.lights = [];
     }
 

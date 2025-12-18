@@ -86,7 +86,7 @@ export class MarbleWorld {
         this.modelManager = new ModelManager(this.scene, preLoadedModels);
 
         // Create other Systems
-        this.trajectoryLine = new TrajectoryLine(this.scene);
+        this.trajectoryLine = new TrajectoryLine(this.scene, this.physics);
         this.selection = new SelectionSystem(this.audioSystem);
         this.selection.setOnDeleteCallback((model) => { this.onModelDeleted(model); });
         this.selection.setOnRotationChangeCallback((model) => { this.onModelRotationChanged(model); });
