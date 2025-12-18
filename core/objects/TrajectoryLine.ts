@@ -1,7 +1,7 @@
 import RAPIER from '@dimforge/rapier3d-compat';
 import * as THREE from 'three';
 import { Model } from './Model';
-import { PhysicsSystem } from './systems/PhysicsSystem';
+import { PhysicsSystem } from '../systems/PhysicsSystem';
 
 export class TrajectoryLine {
     private scene: THREE.Scene;

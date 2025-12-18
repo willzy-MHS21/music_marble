@@ -1,5 +1,5 @@
 import * as THREE from 'three';
-import { Model } from './Model';
+import { Model } from '../objects/Model';
 
 export class ModelManager {
     private models: Model[] = [];

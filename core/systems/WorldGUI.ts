@@ -1,6 +1,6 @@
 import GUI from 'lil-gui';
 import { PhysicsSystem } from './PhysicsSystem';
-import { TrajectoryLine } from '../TrajectoryLine';
+import { TrajectoryLine } from '../objects/TrajectoryLine';
 
 export class WorldGUI {
     private gui: GUI;

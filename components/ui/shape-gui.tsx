@@ -1,14 +1,14 @@
 import { GUI } from 'lil-gui';
 import * as THREE from 'three';
 import { AudioSystem } from '../../core/systems/AudioSystem';
-import { Model } from '../../core/Model';
+import { Model } from '../../core/objects/Model';
 
 export class ShapeGUI {
 	private gui: GUI | null = null;
 	private selectedModel: Model | null = null;
 	private rotationInDegrees = { z: 0 };
-	private noteData = { 
-		note: 'C', 
+	private noteData = {
+		note: 'C',
 		octave: 4,
 		accidental: '' // '' or 'b'
 	};
@@ -26,7 +26,7 @@ export class ShapeGUI {
 	 */
 	private getValidOctaveRange(note: string, accidental: string): { min: number; max: number } {
 		const fullNote = note + accidental;
-		
+
 		// Special cases based on 88-key piano range (A0 to C8)
 		if (fullNote === 'A' || fullNote === 'Bb' || fullNote === 'B') {
 			return { min: 0, max: 7 };
@@ -97,7 +97,7 @@ export class ShapeGUI {
 
 			// Piano Note Assignment Section
 			const noteFolder = this.gui.addFolder('Piano Note');
-			
+
 			// Display current note at the top
 			const displayNote = { currentNote: this.getFullNoteName() };
 			const noteController = noteFolder.add(displayNote, 'currentNote')
@@ -114,16 +114,16 @@ export class ShapeGUI {
 
 			// Step 1: Select note
 			const noteSelectionFolder = noteFolder.addFolder('1. Select Note');
-			
+
 			// Natural notes
 			const naturalNotes = ['C', 'D', 'E', 'F', 'G', 'A', 'B'];
 			const noteActions: any = {};
-			
+
 			naturalNotes.forEach(note => {
 				noteActions[note] = () => {
 					this.noteData.note = note;
 					this.noteData.accidental = '';
-					
+
 					// Update octave range based on selected note
 					this.updateOctaveRange();
 					this.updateObjectNote();
@@ -140,12 +140,12 @@ export class ShapeGUI {
 			// Flat notes (Db, Eb, Gb, Ab, Bb)
 			const flatNotes = ['Db', 'Eb', 'Gb', 'Ab', 'Bb'];
 			const flatActions: any = {};
-			
+
 			flatNotes.forEach(flatNote => {
 				flatActions[flatNote] = () => {
 					this.noteData.note = flatNote[0]; // First letter (C, D, F, G, A)
 					this.noteData.accidental = 'b';
-					
+
 					// Update octave range based on selected note
 					this.updateOctaveRange();
 					this.updateObjectNote();
@@ -158,13 +158,13 @@ export class ShapeGUI {
 			flatNotes.forEach(flatNote => {
 				noteSelectionFolder.add(flatActions, flatNote).name(flatNote);
 			});
-			
+
 			noteSelectionFolder.open();
 
 			// Step 2: Select octave
 			const octaveFolder = noteFolder.addFolder('2. Select Octave');
 			const range = this.getValidOctaveRange(this.noteData.note, this.noteData.accidental);
-			
+
 			this.octaveController = octaveFolder.add(this.noteData, 'octave', range.min, range.max, 1)
 				.name('Octave')
 				.onChange((value: number) => {
@@ -173,7 +173,7 @@ export class ShapeGUI {
 					noteController.updateDisplay();
 					console.log(`Selected octave: ${this.getFullNoteName()}`);
 				});
-			
+
 			octaveFolder.open();
 			noteFolder.open();
 		}
@@ -184,7 +184,7 @@ export class ShapeGUI {
 		};
 
 		const rotationFolder = this.gui.addFolder('Rotation');
-		
+
 		rotationFolder.add(this.rotationInDegrees, 'z', 0, 360, 1)
 			.name('Rotate (°)')
 			.onChange((value: number) => {
@@ -194,7 +194,7 @@ export class ShapeGUI {
 					onRotationChange();
 				}
 			});
-		
+
 		rotationFolder.open();
 
 		// Delete button
@@ -204,7 +204,7 @@ export class ShapeGUI {
 				this.destroy();
 			}
 		};
-		
+
 		this.gui.add(actions, 'deleteShape').name('Delete Shape');
 	}
 
@@ -215,7 +215,7 @@ export class ShapeGUI {
 		if (!this.octaveController) return;
 
 		const range = this.getValidOctaveRange(this.noteData.note, this.noteData.accidental);
-		
+
 		// Adjust current octave if it's out of range
 		if (this.noteData.octave < range.min) {
 			this.noteData.octave = range.min;

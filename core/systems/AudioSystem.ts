@@ -1,4 +1,4 @@
-import { Model } from '../Model';
+import { Model } from '../objects/Model';
 
 export class AudioSystem {
     private audioContext: AudioContext;

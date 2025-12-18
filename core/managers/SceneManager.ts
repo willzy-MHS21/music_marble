@@ -1,6 +1,6 @@
 import * as THREE from 'three';
 import { ModelManager } from './ModelManager';
-import { PhysicsSystem } from './systems/PhysicsSystem';
+import { PhysicsSystem } from '../systems/PhysicsSystem';
 import { MarbleManager } from './MarbleManager';
 
 export class SceneManager {

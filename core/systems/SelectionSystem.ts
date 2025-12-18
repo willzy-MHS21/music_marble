@@ -1,5 +1,5 @@
 import * as THREE from 'three';
-import { Model } from '../Model';
+import { Model } from '../objects/Model';
 import { ShapeGUI } from '../../components/ui/shape-gui';
 import { AudioSystem } from './AudioSystem';
 
