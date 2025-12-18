@@ -1,4 +1,5 @@
 import * as THREE from 'three';
+import { WorldGUI } from './systems/WorldGUI';
 import { TrajectoryLine } from './TrajectoryLine';
 import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js';
 import { InputSystem } from './systems/InputSystem';
@@ -44,6 +45,7 @@ export class MarbleWorld {
     private dragController!: DragController;
     private audioSystem!: AudioSystem;
     private trajectoryLine!: TrajectoryLine;
+    private worldGUI!: WorldGUI;
 
     constructor() {
         this.scene = this.createScene();
@@ -87,6 +89,7 @@ export class MarbleWorld {
 
         // Create other Systems
         this.trajectoryLine = new TrajectoryLine(this.scene, this.physics);
+        this.worldGUI = new WorldGUI(this.physics);
         this.selection = new SelectionSystem(this.audioSystem);
         this.selection.setOnDeleteCallback((model) => { this.onModelDeleted(model); });
         this.selection.setOnRotationChangeCallback((model) => { this.onModelRotationChanged(model); });
@@ -650,6 +653,7 @@ export class MarbleWorld {
         this.marbleInitialPositions.clear();
 
         window.removeEventListener('resize', this.handleResize);
+        if (this.worldGUI) this.worldGUI.dispose();
         this.renderer.dispose();
     }
 }

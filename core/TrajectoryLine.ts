@@ -6,7 +6,7 @@ import { PhysicsSystem } from './systems/PhysicsSystem';
 export class TrajectoryLine {
     private scene: THREE.Scene;
     private line: THREE.Line | null = null;
-    private gravity = new THREE.Vector3(0, -9.81 * 15, 0);
+
     private physicsSystem: PhysicsSystem;
 
     constructor(scene: THREE.Scene, physicsSystem: PhysicsSystem) {
@@ -21,7 +21,7 @@ export class TrajectoryLine {
             return;
         }
 
-        const futureWorld = new RAPIER.World(this.gravity);
+        const futureWorld = new RAPIER.World(this.physicsSystem.getGravity());
         const eventQueue = new RAPIER.EventQueue(true);
         const futureBodyToModel = new Map<number, Model>();
 
@@ -36,17 +36,34 @@ export class TrajectoryLine {
         const marbleBody = this.physicsSystem.createRigidBody(marble, futureWorld);
         this.physicsSystem.createCollider(marble, marbleBody, futureWorld);
 
+        // SYNC VELOCITY from real world to prediction world
+        if (marble.physicsBody) {
+            marbleBody.setLinvel(marble.physicsBody.linvel(), true);
+            marbleBody.setAngvel(marble.physicsBody.angvel(), true);
+        }
+
         const points: THREE.Vector3[] = [];
         points.push(marble.threeObject.position.clone());
 
         const predictionSteps = 200;
+        const activeCollisions = new Map<string, number>();
 
-        for (let i = 0; i < predictionSteps; i++) {
+        for (let step = 0; step < predictionSteps; step++) {
             futureWorld.step(eventQueue);
 
             // Handle Collisions (Bounce/Jump Logic)
             eventQueue.drainCollisionEvents((handle1, handle2, started) => {
-                this.processCollisionEvent(futureWorld, handle1, handle2, started, marbleBody, futureBodyToModel, models);
+                this.processCollisionEvent(
+                    futureWorld,
+                    handle1,
+                    handle2,
+                    started,
+                    marbleBody,
+                    futureBodyToModel,
+                    models,
+                    activeCollisions,
+                    step
+                );
             });
 
             const t = marbleBody.translation();
@@ -68,7 +85,9 @@ export class TrajectoryLine {
         started: boolean,
         marbleBody: RAPIER.RigidBody,
         invisibleBodyToModel: Map<number, Model>,
-        allModels: Model[]
+        allModels: Model[],
+        activeCollisions: Map<string, number>,
+        currentStep: number
     ) {
         if (!started) return;
 
@@ -82,17 +101,26 @@ export class TrajectoryLine {
 
         let invisibleMarble: RAPIER.RigidBody | null = null;
         let invisibleBlockModel: Model | null = null;
+        let otherBodyHandle: number | null = null;
 
         if (b1.handle === marbleBody.handle) {
             invisibleMarble = b1;
             invisibleBlockModel = invisibleBodyToModel.get(b2.handle) || null;
+            otherBodyHandle = b2.handle;
         } else if (b2.handle === marbleBody.handle) {
             invisibleMarble = b2;
             invisibleBlockModel = invisibleBodyToModel.get(b1.handle) || null;
+            otherBodyHandle = b1.handle;
         }
 
-        if (invisibleMarble && invisibleBlockModel) {
-            this.handleInvisibleCollision(invisibleMarble, invisibleBlockModel, allModels);
+        if (invisibleMarble && invisibleBlockModel && otherBodyHandle !== null) {
+            const collisionKey = `${marbleBody.handle}-${otherBodyHandle}`;
+            const lastCollisionStep = activeCollisions.get(collisionKey);
+
+            if (lastCollisionStep === undefined || (currentStep - lastCollisionStep) > 9) {
+                activeCollisions.set(collisionKey, currentStep);
+                this.handleInvisibleCollision(invisibleMarble, invisibleBlockModel, allModels);
+            }
         }
     }
 
@@ -107,7 +135,6 @@ export class TrajectoryLine {
         const invisibleMarbleToModelWrapper = new Model(tempObject, 'marble');
 
         if (targetModel) {
-            // Use shared PhysicsSystem logic
             const jumpVelocity = this.physicsSystem.calculateVelocity(invisibleMarbleToModelWrapper, targetModel);
             invisibleMarble.setLinvel(jumpVelocity, true);
             invisibleMarble.setAngvel({ x: 0, y: 0, z: 0 }, true);

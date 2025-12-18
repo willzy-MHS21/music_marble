@@ -185,9 +185,17 @@ export class PhysicsSystem {
 
     public updateDebug() {
         if (this.world && this.debugLines) {
+            if (!this.debugLines.visible) return;
+
             const { vertices, colors } = this.world.debugRender();
             this.debugLines.geometry.setAttribute('position', new THREE.BufferAttribute(vertices, 3));
             this.debugLines.geometry.setAttribute('color', new THREE.BufferAttribute(colors, 4));
+        }
+    }
+
+    public setDebugVisibility(visible: boolean) {
+        if (this.debugLines) {
+            this.debugLines.visible = visible;
         }
     }
 
@@ -272,12 +280,31 @@ export class PhysicsSystem {
     // Calculate velocity needed to hit the target model 
     // t is derived from the distance and a constant speed factor
     // projectile motion formula: v = (p - p0 - 0.5 * g * t^2) / t
+    public speed: number = 60;
+
+    public setGravity(y: number) {
+        this.gravity.y = y;
+        if (this.world) {
+            this.world.gravity = { x: 0.0, y: y, z: 0.0 };
+        }
+    }
+
+    public getGravityY(): number {
+        return this.gravity.y;
+    }
+
+    public getGravity(): THREE.Vector3 {
+        return this.gravity.clone();
+    }
+
     public calculateVelocity(marble: Model, target: Model): THREE.Vector3 {
         const initial_position = marble.threeObject.position.clone();
         const final_position = target.threeObject.position.clone();
         const distance = initial_position.distanceTo(final_position);
-        const speed = 60;
-        let t = distance / speed;
+
+        // Use the instance property speed instead of hardcoded value
+        let t = distance / this.speed;
+
         if (t < 0.25) t = 0.25;
         const gravity = this.gravity;
         const displacement = new THREE.Vector3().subVectors(final_position, initial_position);
