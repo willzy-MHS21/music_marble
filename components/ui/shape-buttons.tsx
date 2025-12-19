@@ -9,11 +9,12 @@ interface ShapeButtonsProps {
     plank: (event: React.MouseEvent) => void;
     cylinder: (event: React.MouseEvent) => void;
     curve: (event: React.MouseEvent) => void;
+    spongebob: (event: React.MouseEvent) => void;
     onPlayPause: () => void;
     isPaused: boolean;
 }
 
-export default function ShapeButtons({ marble, plank, cylinder, curve, onPlayPause, isPaused }: ShapeButtonsProps) {
+export default function ShapeButtons({ marble, plank, cylinder, curve, spongebob, onPlayPause, isPaused }: ShapeButtonsProps) {
     return (
         <div className="absolute bottom-0 left-1/2 -translate-x-1/2 flex flex-row gap-3 p-2 rounded-3xl pointer-events-auto">
             <Button 
@@ -101,6 +102,24 @@ export default function ShapeButtons({ marble, plank, cylinder, curve, onPlayPau
                 />
                 <span className="sr-only">Curve</span>
             </Button>
+
+            <Button
+                onClick={spongebob}
+                variant="ghost"
+                size="icon"
+                className="w-16 h-16 rounded-2xl hover:scale-120 transition-all bg-white/60 hover:bg-white"
+            >
+                <Image
+                    src="/images/spongebob.png"
+                    alt="Spongebob"
+                    width={54}
+                    height={54}
+                    className="object-contain"
+                    unoptimized
+                />
+                <span className="sr-only">Spongebob</span>
+            </Button>
+
         </div>
     );
 }

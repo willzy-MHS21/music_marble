@@ -129,6 +129,7 @@ export default function MarbleScene() {
 				plank={(e) => shapeClick('plank', e)}
 				cylinder={(e) => shapeClick('cylinder', e)}
 				curve={(e) => shapeClick('curve', e)}
+				spongebob={(e) => shapeClick('spongebob', e)}
 				onPlayPause={handlePlayPause}
 				isPaused={isPaused}
 			/>

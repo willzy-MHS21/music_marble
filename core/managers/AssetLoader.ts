@@ -10,7 +10,7 @@ export class AssetLoader {
     private audioBuffers = new Map<string, AudioBuffer>();
     private audioContext: AudioContext;
 
-    private modelUrls = ['models/curve.glb', 'models/plank.glb', 'models/cylinder.glb', 'models/marble.glb'];
+    private modelUrls = ['models/curve.glb', 'models/plank.glb', 'models/cylinder.glb', 'models/marble.glb', 'models/spongebob.glb'];
 
     constructor() {
         this.audioContext = new AudioContext();

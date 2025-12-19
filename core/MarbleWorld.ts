@@ -147,7 +147,9 @@ export class MarbleWorld {
     }
 
     private onModelPlaced(model: Model) {
-        this.physics.createBody(model);
+        if (!model.isDecoration) {
+            this.physics.createBody(model);
+        }
         this.selection.select(model);
 
         if (model.shapeType === 'marble') {
@@ -233,7 +235,7 @@ export class MarbleWorld {
     public clearALL() {
         this.cameraController.unlockCamera();
         this.marbleManager.clearAllTimers();
-        this.physics.clearAllBodies(this.modelManager.getAllModels());
+        this.physics.clearAllBodies(this.modelManager.getPhysicsModels());
         this.modelManager.clear();
         this.selection.deselect();
     }
@@ -339,14 +341,14 @@ export class MarbleWorld {
             }
 
             this.trajectoryLine.clear();
-            const models = this.modelManager.getAllModels();
+            const models = this.modelManager.getPhysicsModels();
             this.physics.syncAllModels(models);
 
             this.marbleManager.checkMarbleFallOffTrack((marble) => {
                 this.onMarbleRemoved(marble);
             });
         } else {
-            const models = this.modelManager.getAllModels();
+            const models = this.modelManager.getPhysicsModels();
             this.trajectoryLine.update(models);
         }
 
