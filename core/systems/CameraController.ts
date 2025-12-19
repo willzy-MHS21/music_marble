@@ -29,8 +29,6 @@ export class CameraController {
                 return false;
             }
 
-            console.log('Camera locked to marble at position:', marble.threeObject.position);
-
             // Save current controls state
             this.savedControlsState = {
                 enabled: this.controls.enabled,
@@ -54,9 +52,7 @@ export class CameraController {
             );
 
             this.controls.update();
-
-            console.log('Camera target set to:', this.controls.target);
-            console.log('Camera position:', this.camera.position);
+            
         } else {
             console.log('Camera unlocked');
             // Restore controls state

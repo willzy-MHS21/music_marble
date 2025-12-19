@@ -193,7 +193,7 @@ export class TrajectoryLine {
         if (points.length > 1) {
             const pathGeometry = new THREE.BufferGeometry().setFromPoints(points);
             const pathMaterial = new THREE.LineBasicMaterial({
-                color: 0x007744,
+                color: 0xff0000,
                 opacity: 0.8,
                 transparent: true,
                 linewidth: 1

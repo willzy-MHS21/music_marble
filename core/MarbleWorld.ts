@@ -57,10 +57,9 @@ export class MarbleWorld {
         this.animate = this.animate.bind(this);
         this.handleResize = this.handleResize.bind(this);
         window.addEventListener('resize', this.handleResize);
-        this.init();
     }
 
-    private async init() {
+    public async init() {
         // Initialize physics
         this.physics = new PhysicsSystem();
         await this.physics.init(this.scene);

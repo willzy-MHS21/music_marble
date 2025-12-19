@@ -18,7 +18,6 @@ export class MarbleManager {
     public storeInitialPosition(marble: Model): void {
         if (marble.shapeType === 'marble') {
             this.marbleInitialPositions.set(marble, marble.threeObject.position.clone());
-            console.log('Stored initial position for marble:', this.marbleInitialPositions);
         }
     }
 

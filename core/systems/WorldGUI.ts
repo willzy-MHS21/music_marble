@@ -40,7 +40,7 @@ export class WorldGUI {
                 }
             });
 
-        folder.add(params, 'speed', 0, 100)
+        folder.add(params, 'speed', 1, 100)
             .name('Speed')
             .onChange((value: number) => {
                 this.physicsSystem.speed = value;

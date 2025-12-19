@@ -14,34 +14,52 @@ export default function MarbleScene() {
 	useEffect(() => {
 		if (!mountRef.current) return;
 
-		// Create Marble World
-		const marbleWorld = new MarbleWorld();
-		marbleWorldRef.current = marbleWorld;
-		mountRef.current.appendChild(marbleWorld.getDomElement());
-		marbleWorld.animate();
+		const initWorld = async () => {
+			// Create Marble World
+			const marbleWorld = new MarbleWorld();
+			marbleWorldRef.current = marbleWorld;
+			if (mountRef.current) {
+				mountRef.current.appendChild(marbleWorld.getDomElement());
+			}
 
-		// Set initial paused state
-		setIsPaused(marbleWorld.isPausedState());
-		setIsCameraLocked(marbleWorld.isCameraLockedToMarble());
+			// Initialize World (Load assets, physics, etc.)
+			await marbleWorld.init();
+
+			// Start Game Loop
+			marbleWorld.animate();
+
+			// Load Default Scene
+			await loadScene();
+
+			// Set initial paused state
+			if (marbleWorldRef.current) {
+				setIsPaused(marbleWorld.isPausedState());
+				setIsCameraLocked(marbleWorld.isCameraLockedToMarble());
+			}
+		};
+
+		initWorld();
 
 		// Sync pause and camera lock state periodically
 		const syncInterval = setInterval(() => {
 			if (!marbleWorldRef.current) return;
 			const currentPausedState = marbleWorldRef.current.isPausedState();
 			const currentCameraState = marbleWorldRef.current.isCameraLockedToMarble();
-			
+
 			setIsPaused(currentPausedState);
 			setIsCameraLocked(currentCameraState);
 		}, 50);
 
 		return () => {
 			clearInterval(syncInterval);
-			if (mountRef.current && marbleWorld.getDomElement().parentNode === mountRef.current) {
-				mountRef.current.removeChild(marbleWorld.getDomElement());
+			if (mountRef.current && marbleWorldRef.current && marbleWorldRef.current.getDomElement().parentNode === mountRef.current) {
+				mountRef.current.removeChild(marbleWorldRef.current.getDomElement());
 			}
-			marbleWorld.dispose();
+			if (marbleWorldRef.current) {
+				marbleWorldRef.current.dispose();
+			}
 		};
-	}, []); 
+	}, []);
 
 	const shapeClick = (shapeType: string, event: React.MouseEvent) => {
 		if (marbleWorldRef.current) {
@@ -50,7 +68,7 @@ export default function MarbleScene() {
 	};
 
 	const exportScene = () => {
-		if(marbleWorldRef.current) {
+		if (marbleWorldRef.current) {
 			const json = marbleWorldRef.current.exportScene();
 			const blob = new Blob([json], { type: 'application/json' });
 			const url = URL.createObjectURL(blob);
@@ -65,7 +83,6 @@ export default function MarbleScene() {
 	const loadScene = async () => {
 		try {
 			const response = await fetch('/scenes/default.json');
-			console.log(response);
 			if (!response.ok) {
 				throw new Error('Default scene not found');
 			}
