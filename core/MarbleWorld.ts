@@ -106,7 +106,14 @@ export class MarbleWorld {
             (model) => this.onModelClicked(model),
             (model) => this.onModelDragStart(model),
             () => this.onEmptySpaceClicked(),
-            () => { this.togglePlayPause(); });
+            () => { this.togglePlayPause(); },
+            (model) => this.onModelDeleted(model),
+            (model) => {
+                model.threeObject.rotateZ(Math.PI / 8);
+                this.onModelRotationChanged(model);
+            },
+            () => { this.toggleCameraLock(); }
+        );
     }
 
     public togglePlayPause(): boolean {
