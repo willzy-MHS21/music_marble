@@ -115,84 +115,84 @@ export default function ShapeButtons({ marble, plank, cylinder, curve, spongebob
                 onMouseEnter={() => setHoverDecoration(true)}
                 onMouseLeave={() => setHoverDecoration(false)}
             >
-                {/* Hover Menu */}
-                <div className={`
-                    absolute bottom-full mb-3 left-1/2 -translate-x-1/2
-                    flex flex-col gap-2 p-2
-                    bg-white/90 backdrop-blur-md rounded-2xl shadow-xl
-                    transition-all duration-300 origin-bottom
-                    ${hoverDecoration ? 'opacity-100 scale-100' : 'opacity-0 scale-95 pointer-events-none'}
-                `}>
-                    <Button
-                        onClick={spongebob}
-                        variant="ghost"
-                        className="w-16 h-16 rounded-2xl hover:bg-black/5 p-0"
-                        title="Spongebob"
-                    >
-                        <Image
-                            src="/images/spongebob.png"
-                            alt="Spongebob"
-                            width={54}
-                            height={54}
-                            className="object-contain"
-                            unoptimized
-                        />
-                    </Button>
-                    <Button
-                        onClick={ginger}
-                        variant="ghost"
-                        className="w-16 h-16 rounded-2xl hover:bg-black/5 p-0"
-                        title="Ginger"
-                    >
-                        <Image
-                            src="/images/ginger.png"
-                            alt="Ginger"
-                            width={54}
-                            height={54}
-                            className="object-contain"
-                            unoptimized
-                        />
-                    </Button>
-                    <Button
-                        onClick={steve}
-                        variant="ghost"
-                        className="w-16 h-16 rounded-2xl hover:bg-black/5 p-0"
-                        title="Steve"
-                    >
-                        <Image
-                            src="/images/steve.png"
-                            alt="Steve"
-                            width={54}
-                            height={54}
-                            className="object-contain"
-                            unoptimized
-                        />
-                    </Button>
-                    <Button
-                        onClick={creeper}
-                        variant="ghost"
-                        className="w-16 h-16 rounded-2xl hover:bg-black/5 p-0"
-                        title="Creeper"
-                    >
-                        <Image
-                            src="/images/creeper.png"
-                            alt="Creeper"
-                            width={54}
-                            height={54}
-                            className="object-contain"
-                            unoptimized
-                        />
-                    </Button>
-                </div>
                 <Button
-                    onClick={spongebob}
                     variant="ghost"
                     size="icon"
                     className="w-16 h-16 rounded-2xl hover:scale-120 transition-all bg-white/60 hover:bg-white"
                 >
-                    <Plus style={{ width: '40px', height: '40px' }} className="text-gray-600" />
+                    <Plus style={{ width: '52px', height: '52px' }} className="text-gray-600" />
                     <span className="sr-only">Decorations</span>
                 </Button>
+                
+                {/* Hidden decoration buttons - Show on hover */}
+                {hoverDecoration && (
+                    <div className="absolute bottom-full mb-3 left-0 flex flex-col gap-3">
+                        <Button
+                            onClick={creeper}
+                            variant="ghost"
+                            size="icon"
+                            className="w-16 h-16 rounded-2xl hover:scale-120 transition-all bg-white/60 hover:bg-white"
+                            title="Creeper"
+                        >
+                            <Image
+                                src="/images/creeper.png"
+                                alt="Creeper"
+                                width={42}
+                                height={30}
+                                className="object-contain"
+                                unoptimized
+                            />
+                        </Button>
+                        <Button
+                            onClick={steve}
+                            variant="ghost"
+                            size="icon"
+                            className="w-16 h-16 rounded-2xl hover:scale-120 transition-all bg-white/60 hover:bg-white"
+                            title="Steve"
+                        >
+                            <Image
+                                src="/images/steve.png"
+                                alt="Steve"
+                                width={42}
+                                height={42}
+                                className="object-contain max-h-16"
+                                unoptimized
+                            />
+                        </Button>
+                        <Button
+                            onClick={ginger}
+                            variant="ghost"
+                            size="icon"
+                            className="w-16 h-16 rounded-2xl hover:scale-120 transition-all bg-white/60 hover:bg-white"
+                            title="Ginger"
+                        >
+                            <Image
+                                src="/images/ginger.png"
+                                alt="Ginger"
+                                width={42}
+                                height={42}
+                                className="object-contain"
+                                unoptimized
+                            />
+                        </Button>
+                        <Button
+                            onClick={spongebob}
+                            variant="ghost"
+                            size="icon"
+                            className="w-16 h-16 rounded-2xl hover:scale-120 transition-all bg-white/60 hover:bg-white"
+                            title="Spongebob"
+                        >
+                            <Image
+                                src="/images/spongebob.png"
+                                alt="Spongebob"
+                                width={80}
+                                height={80}
+                                className="object-contain"
+                                unoptimized
+                            />
+                        </Button>
+                    </div>
+                )}
             </div>
         </div>
     );

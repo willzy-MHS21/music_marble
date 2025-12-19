@@ -1,7 +1,9 @@
 # Music Marble
 
-Music Marble is a interactive 3d physics sandbox where you can create marble run that generate music.
+Music Marble is a interactive 3D physics sandbox where users can create marble run that generate music. 
 
+## Overview
+Music Marble combines physics simulation with audio feedback to create an engaging creative experience. Users can place various 3D shapes (ramps, blocks, circles, and more) onto a vertical wall, adjust their positions and rotations, and then release marbles to roll through the custom-built course. Each collision generates audio feedback, turning your marble run into a musical instrument.
 
 ## Generated music showcase Video
 
@@ -57,6 +59,13 @@ https://github.com/user-attachments/assets/eb494d92-aaef-4e7d-9d20-4f3640862f50
 
 4. Open [http://localhost:3000](http://localhost:3000) with your browser.
 
+## Usage Example
+
+1. **Build**: Select marble and shapes from the buttons and place them on the wall
+2. **Arrange**: Drag and rotate shapes to position them
+3. **Test**: Press Space or the play button and watch the marble roll
+4. **Refine**: Pause, adjust shapes, and iterate on your design
+5. **Enjoy**: Listen to the music created by marble collisions
 
 ## Future Improvements
 
@@ -68,6 +77,7 @@ https://github.com/user-attachments/assets/eb494d92-aaef-4e7d-9d20-4f3640862f50
 - Different texture on the background and the marble
 - Add more complex objects
 - Lighting and shadow tweaks to make it more realistic
+- Display which sepefic note is playing
 - Add more decorations
 
 ### Physics Enhancements
@@ -75,14 +85,70 @@ https://github.com/user-attachments/assets/eb494d92-aaef-4e7d-9d20-4f3640862f50
 - Bounce/elasticity controls for objects' surfaces
 - Support for multiple marbles
 
-## Authors and acknowledgment
-Piano sound samples sourced from [fuhton/piano-mp3](https://github.com/fuhton/piano-mp3).
-Decoration models credits:
+## Project Structure
+```
+marble_music/
+├── app/                        # Next.js app directory
+├── components/                 # UI components
+│   └── scene/
+│       ├── MarbleScene.tsx     # Main scene component
+│       ├── button.tsx          # Shadcn button components
+│       ├── shape-buttons.tsx   # Shape selection buttons
+│       ├── shape-gui.tsx       # Shape GUI interface
+│       ├── tooltip.tsx         # Shadcn tooltip component
+│       └── utility-buttons.tsx # Utility action buttons
+├── core/                       
+│   ├── managers/
+│   │   ├── AssetLoader.ts      # Asset loading manager
+│   │   ├── MarbleManager.ts    # Marble state management
+│   │   ├── ModelManager.ts     # 3D model management
+│   │   └── SceneManager.ts     # Scene import/export
+│   ├── objects/
+│   │   ├── Model.ts            # Model class definition
+│   │   └── TrajectoryLine.ts   # Physics trajectory visualization
+│   ├── systems/
+│   │   ├── AudioSystem.ts      # Sound effects system
+│   │   ├── CameraController.ts # Camera control system
+│   │   ├── DragSystem.ts       # Drag and drop handling
+│   │   ├── InputSystem.ts      # User input handling
+│   │   ├── PhysicsSystem.ts    # Physics simulation
+│   │   ├── SelectionSystem.ts  # Object selection
+│   │   └── WorldGUI.ts         # World GUI controls
+│   └── MarbleWorld.ts          # Main world controller
+└── lib/
+    ├── utils.ts                # Utility functions
+    └── utils.tsx               # React utility functions
+```
 
-Spongebob" (https://skfb.ly/6ULpS) by SleepyPineapple is licensed under Creative Commons Attribution (http://creativecommons.org/licenses/by/4.0/).
+## Authors and Acknowledgment
+### Development Backlogs
+This project was built through three development epics:
 
-Christmas Ginger Bread Cookies" (https://skfb.ly/o8tMH) by GetDeadEntertainment is licensed under Creative Commons Attribution (http://creativecommons.org/licenses/by/4.0/).
+**Epic 1: Foundation**
+- Set Up the Scene
+- Embed Shapes On the Background
+- ***More details:** https://github.com/users/willzy-MHS21/projects/3*
 
-Minecraft - Steve" (https://skfb.ly/6RsFO) by Vincent Yanez is licensed under Creative Commons Attribution (http://creativecommons.org/licenses/by/4.0/).
+**Epic 2: Core Mechanics**
+- Utility Features
+- Object Placement (Add, Move, Edit)
+- Integrate Physics
+- ***More details:** https://github.com/users/willzy-MHS21/projects/3/views/4*
 
-Minecraft Creeper" (https://skfb.ly/6TPTz) by keithandmarchant is licensed under Creative Commons Attribution (http://creativecommons.org/licenses/by/4.0/).
+**Epic 3: Polish & Features**
+- Angry-Bird Like Prediction Line on Marble
+- Polish the Scene
+- Final Documentation
+- Better Collision for Curve
+- ***More details:** https://github.com/users/willzy-MHS21/projects/3/views/5*
+
+### Credits:
+- Piano sound samples sourced from [fuhton/piano-mp3](https://github.com/fuhton/piano-mp3).
+
+- Spongebob" (https://skfb.ly/6ULpS) by SleepyPineapple is licensed under Creative Commons Attribution (http://creativecommons.org/licenses/by/4.0/).
+
+- Christmas Ginger Bread Cookies" (https://skfb.ly/o8tMH) by GetDeadEntertainment is licensed under Creative Commons Attribution (http://creativecommons.org/licenses/by/4.0/).
+
+- Minecraft - Steve" (https://skfb.ly/6RsFO) by Vincent Yanez is licensed under Creative Commons Attribution (http://creativecommons.org/licenses/by/4.0/).
+
+- Minecraft Creeper" (https://skfb.ly/6TPTz) by keithandmarchant is licensed under Creative Commons Attribution (http://creativecommons.org/licenses/by/4.0/).

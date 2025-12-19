@@ -305,13 +305,15 @@ export class MarbleWorld {
         // mainLight.position.set(-36.2, 35, 26.8);
 
         mainLight.castShadow = true;
-        mainLight.shadow.mapSize.width = 2048;
-        mainLight.shadow.mapSize.height = 2048;
+        mainLight.shadow.mapSize.width = 4096;
+        mainLight.shadow.mapSize.height = 4096;
         mainLight.shadow.bias = -0.0001;
-        mainLight.shadow.camera.top = 20;
-        mainLight.shadow.camera.bottom = -30;
-        mainLight.shadow.camera.left = -30;
-        mainLight.shadow.camera.right = 30;
+        mainLight.shadow.camera.top = 350;
+        mainLight.shadow.camera.bottom = -350;
+        mainLight.shadow.camera.left = -150;
+        mainLight.shadow.camera.right = 150;
+        mainLight.shadow.camera.near = 0.5;
+        mainLight.shadow.camera.far = 150;
         this.scene.add(mainLight);
 
         const fillLight = new THREE.DirectionalLight(0xcceeff, 1.01);
