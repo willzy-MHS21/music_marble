@@ -15,15 +15,19 @@ export class ModelManager {
             throw new Error(`Model ${shapeType} not preloaded`);
         }
         const cloneModel = askModel.clone();
-        
+
         // Ensure shadows are enabled on cloned model
         cloneModel.traverse((child) => {
             if (child instanceof THREE.Mesh) {
                 child.castShadow = true;
                 child.receiveShadow = true;
+                if (child.material instanceof THREE.MeshStandardMaterial) {
+                    child.material.roughness = 0.3;
+                    child.material.metalness = 0.1;
+                }
             }
         });
-        
+
         cloneModel.position.copy(position);
         cloneModel.userData.shapeType = shapeType;
         const model = new Model(cloneModel, shapeType);

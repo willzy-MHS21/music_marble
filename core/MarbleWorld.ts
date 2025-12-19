@@ -267,13 +267,12 @@ export class MarbleWorld {
     private setupRenderer() {
         const renderer = new THREE.WebGLRenderer({ antialias: true });
         renderer.setSize(window.innerWidth, window.innerHeight);
-        renderer.setPixelRatio(window.devicePixelRatio);
-        renderer.outputColorSpace = THREE.SRGBColorSpace;
-        renderer.toneMapping = THREE.ACESFilmicToneMapping;
-        renderer.toneMappingExposure = 1.0;
-
+        renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
         renderer.shadowMap.enabled = true;
         renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+        renderer.toneMapping = THREE.ACESFilmicToneMapping;
+        renderer.toneMappingExposure = 1.2;
+        renderer.outputColorSpace = THREE.SRGBColorSpace;
         return renderer;
     }
 
@@ -289,37 +288,33 @@ export class MarbleWorld {
     }
 
     private addLights() {
-        const ambientLight = new THREE.AmbientLight(0xffffff, 0.25);
+        const ambientLight = new THREE.AmbientLight(0xffffff, 0.35);
         this.scene.add(ambientLight);
 
-        // Spotlight from top left for realistic gradient shadows
-        const spotlight = new THREE.SpotLight(0xffffff, 2.5);
-        spotlight.position.set(-80, 80, 50);
-        spotlight.target.position.set(0, 0, 0);
-        spotlight.angle = Math.PI / 3;
-        spotlight.penumbra = 0.5;
-        spotlight.decay = 1;
-        spotlight.distance = 200;
-        spotlight.castShadow = true;
-        spotlight.shadow.mapSize.width = 2048;
-        spotlight.shadow.mapSize.height = 2048;
-        spotlight.shadow.camera.near = 10;
-        spotlight.shadow.camera.far = 200;
-        spotlight.shadow.bias = -0.0001;
-        this.scene.add(spotlight);
-        this.scene.add(spotlight.target);
+        const mainLight = new THREE.DirectionalLight(0xf5efe5, 1.75);
+        mainLight.position.set(-28.2, 35, 26.8);
+        // mainLight.position.set(-36.2, 35, 26.8);
 
-        // Fill light for even coverage
-        const fillLight = new THREE.DirectionalLight(0xffffff, 0.3);
-        fillLight.position.set(30, 40, 30);
+        mainLight.castShadow = true;
+        mainLight.shadow.mapSize.width = 2048;
+        mainLight.shadow.mapSize.height = 2048;
+        mainLight.shadow.bias = -0.0001;
+        mainLight.shadow.camera.top = 20;
+        mainLight.shadow.camera.bottom = -30;
+        mainLight.shadow.camera.left = -30;
+        mainLight.shadow.camera.right = 30;
+        this.scene.add(mainLight);
+
+        const fillLight = new THREE.DirectionalLight(0xcceeff, 1.01);
+        fillLight.position.set(-44, 13.6, 52.8);
+        // fillLight.position.set(-17.8, 13.6, 39.8);
         this.scene.add(fillLight);
     }
 
     private createWall() {
-        const planeGeometry = new THREE.PlaneGeometry(200, 200);
-        const planeMaterial = new THREE.MeshStandardMaterial({ color: 0xEDFCFF });
+        const planeGeometry = new THREE.PlaneGeometry(200, 600);
+        const planeMaterial = new THREE.MeshStandardMaterial({ color: 0xA9A9A9, roughness: 1, metalness: 0 });
         const wall = new THREE.Mesh(planeGeometry, planeMaterial);
-
         wall.receiveShadow = true;
         this.scene.add(wall);
         return wall;
