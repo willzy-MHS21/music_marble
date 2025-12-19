@@ -306,7 +306,8 @@ export class MarbleWorld {
         mainLight.castShadow = true;
         mainLight.shadow.mapSize.width = 4096;
         mainLight.shadow.mapSize.height = 4096;
-        mainLight.shadow.bias = -0.0001;
+        mainLight.shadow.bias = -0.002;
+        mainLight.shadow.normalBias = 0.2;
         mainLight.shadow.camera.top = 350;
         mainLight.shadow.camera.bottom = -350;
         mainLight.shadow.camera.left = -150;
