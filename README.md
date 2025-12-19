@@ -5,7 +5,7 @@ Music Marble is a interactive 3d physics sandbox where you can create marble run
 
 ## Generated music showcase Video
 
-insert demo video here
+<video src="public/video/demo.mov" controls width="100%"></video>
 
 ## Features
 - **Object Controls** - Object movement, rotation, and removal
@@ -77,3 +77,12 @@ insert demo video here
 
 ## Authors and acknowledgment
 Piano sound samples sourced from [fuhton/piano-mp3](https://github.com/fuhton/piano-mp3).
+Decoration models credits:
+
+Spongebob" (https://skfb.ly/6ULpS) by SleepyPineapple is licensed under Creative Commons Attribution (http://creativecommons.org/licenses/by/4.0/).
+
+Christmas Ginger Bread Cookies" (https://skfb.ly/o8tMH) by GetDeadEntertainment is licensed under Creative Commons Attribution (http://creativecommons.org/licenses/by/4.0/).
+
+Minecraft - Steve" (https://skfb.ly/6RsFO) by Vincent Yanez is licensed under Creative Commons Attribution (http://creativecommons.org/licenses/by/4.0/).
+
+Minecraft Creeper" (https://skfb.ly/6TPTz) by keithandmarchant is licensed under Creative Commons Attribution (http://creativecommons.org/licenses/by/4.0/).
