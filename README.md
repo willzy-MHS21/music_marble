@@ -5,7 +5,7 @@ Music Marble is a interactive 3d physics sandbox where you can create marble run
 
 ## Generated music showcase Video
 
-<video src="public/video/demo.mov" controls width="100%"></video>
+https://github.com/user-attachments/assets/eb494d92-aaef-4e7d-9d20-4f3640862f50
 
 ## Features
 - **Object Controls** - Object movement, rotation, and removal
