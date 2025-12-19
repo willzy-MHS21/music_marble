@@ -17,8 +17,8 @@ export class WorldGUI {
         this.gui.domElement.style.left = 'auto';
         this.gui.domElement.style.right = '0';
         this.gui.domElement.style.margin = '5px';
-
         this.setupPhysicsFolder();
+        this.gui.close();
     }
 
     private setupPhysicsFolder() {
@@ -32,7 +32,6 @@ export class WorldGUI {
         folder.add(params, 'showPrediction')
             .name('Show Prediction Line')
             .onChange((value: boolean) => {
-                // Check if setVisible method exists and call it appropriately
                 if (typeof (this.trajectoryLine as any).setVisible === 'function') {
                     (this.trajectoryLine as any).setVisible(value);
                 } else if ('visible' in this.trajectoryLine) {

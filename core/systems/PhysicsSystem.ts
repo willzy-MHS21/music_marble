@@ -197,13 +197,13 @@ export class PhysicsSystem {
 
         if (!marbleBody || !shapeModel || !marbleModel) return;
 
-        // Skip bouncing logic for curves - they are for rolling
-        if (shapeModel.shapeType === 'curve') return;
-
         // Notify listener (Play Sound)
         if (this.onCollision) {
             this.onCollision(marbleModel, shapeModel);
         }
+
+        // Skip bouncing logic for curves - they are for rolling
+        if (shapeModel.shapeType === 'curve') return;
 
         const targetModel = this.getNextModel(marbleModel, shapeModel);
 
