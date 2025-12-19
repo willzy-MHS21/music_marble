@@ -1,18 +1,18 @@
 import * as THREE from 'three';
 import { WorldGUI } from './systems/WorldGUI';
-import { TrajectoryLine } from './TrajectoryLine';
+import { TrajectoryLine } from './objects/TrajectoryLine';
 import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js';
 import { InputSystem } from './systems/InputSystem';
 import { SelectionSystem } from './systems/SelectionSystem';
 import { PhysicsSystem } from './systems/PhysicsSystem';
-import { AssetLoader } from './AssetLoader';
-import { ModelManager } from './ModelManager';
+import { AssetLoader } from './managers/AssetLoader';
+import { ModelManager } from './managers/ModelManager';
 import { DragController } from './systems/DragSystem';
-import { Model } from './Model';
+import { Model } from './objects/Model';
 import { AudioSystem } from './systems/AudioSystem';
-import { CameraController } from './CameraController';
-import { MarbleManager } from './MarbleManager';
-import { SceneManager } from './SceneManager';
+import { CameraController } from './systems/CameraController';
+import { MarbleManager } from './managers/MarbleManager';
+import { SceneManager } from './managers/SceneManager';
 
 export class MarbleWorld {
     private scene: THREE.Scene;
@@ -22,9 +22,10 @@ export class MarbleWorld {
     private wall: THREE.Mesh;
     private isPaused: boolean = true;
 
-    private lastTime: number = 0;
+    private clock = new THREE.Clock();
     private accumulator: number = 0;
     private readonly fixedTimeStep: number = 1 / 60;
+    private readonly maxSubSteps: number = 15;
 
     private highlightTimers: Map<Model, any> = new Map();
 
@@ -49,7 +50,7 @@ export class MarbleWorld {
         this.addLights();
         this.wall = this.createWall();
         this.controls = this.setupControls();
-        
+
         // Initialize camera controller early since it's used immediately
         this.cameraController = new CameraController(this.camera, this.controls);
 
@@ -111,7 +112,7 @@ export class MarbleWorld {
     public togglePlayPause(): boolean {
         this.isPaused = !this.isPaused;
         if (!this.isPaused) {
-            this.lastTime = performance.now();
+            this.clock.getDelta();
             this.accumulator = 0;
         }
         return this.isPaused;
@@ -191,7 +192,7 @@ export class MarbleWorld {
 
         if (marble) {
             const otherShape = model1.shapeType === 'marble' ? model2 : model1;
-            this.marbleManager.checkGoalCollision(marble, otherShape, (removedMarble) => {
+            this.marbleManager.checkCompletion(marble, otherShape, (removedMarble) => {
                 this.onMarbleRemoved(removedMarble);
             });
         }
@@ -199,8 +200,8 @@ export class MarbleWorld {
 
     private onMarbleRemoved(marble: Model): void {
         // Check if camera was locked to this marble
-        const shouldRelockCamera = this.cameraController.isCameraLockedToMarble() && 
-                                   this.getFirstMarble() === marble;
+        const shouldRelockCamera = this.cameraController.isCameraLockedToMarble() &&
+            this.getFirstMarble() === marble;
 
         // Unlock camera temporarily if it was following this marble
         if (shouldRelockCamera) {
@@ -266,13 +267,12 @@ export class MarbleWorld {
     private setupRenderer() {
         const renderer = new THREE.WebGLRenderer({ antialias: true });
         renderer.setSize(window.innerWidth, window.innerHeight);
-        renderer.setPixelRatio(window.devicePixelRatio);
-        renderer.outputColorSpace = THREE.SRGBColorSpace;
-        renderer.toneMapping = THREE.ACESFilmicToneMapping;
-        renderer.toneMappingExposure = 1.0;
-
+        renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
         renderer.shadowMap.enabled = true;
         renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+        renderer.toneMapping = THREE.ACESFilmicToneMapping;
+        renderer.toneMappingExposure = 1.2;
+        renderer.outputColorSpace = THREE.SRGBColorSpace;
         return renderer;
     }
 
@@ -288,37 +288,33 @@ export class MarbleWorld {
     }
 
     private addLights() {
-        const ambientLight = new THREE.AmbientLight(0xffffff, 0.25);
+        const ambientLight = new THREE.AmbientLight(0xffffff, 0.35);
         this.scene.add(ambientLight);
-        
-        // Spotlight from top left for realistic gradient shadows
-        const spotlight = new THREE.SpotLight(0xffffff, 2.5);
-        spotlight.position.set(-80, 80, 50);
-        spotlight.target.position.set(0, 0, 0);
-        spotlight.angle = Math.PI / 3;
-        spotlight.penumbra = 0.5;
-        spotlight.decay = 1;
-        spotlight.distance = 200;
-        spotlight.castShadow = true;
-        spotlight.shadow.mapSize.width = 2048;
-        spotlight.shadow.mapSize.height = 2048;
-        spotlight.shadow.camera.near = 10;
-        spotlight.shadow.camera.far = 200;
-        spotlight.shadow.bias = -0.0001;
-        this.scene.add(spotlight);
-        this.scene.add(spotlight.target);
-        
-        // Fill light for even coverage
-        const fillLight = new THREE.DirectionalLight(0xffffff, 0.3);
-        fillLight.position.set(30, 40, 30);
+
+        const mainLight = new THREE.DirectionalLight(0xf5efe5, 1.75);
+        mainLight.position.set(-28.2, 35, 26.8);
+        // mainLight.position.set(-36.2, 35, 26.8);
+
+        mainLight.castShadow = true;
+        mainLight.shadow.mapSize.width = 2048;
+        mainLight.shadow.mapSize.height = 2048;
+        mainLight.shadow.bias = -0.0001;
+        mainLight.shadow.camera.top = 20;
+        mainLight.shadow.camera.bottom = -30;
+        mainLight.shadow.camera.left = -30;
+        mainLight.shadow.camera.right = 30;
+        this.scene.add(mainLight);
+
+        const fillLight = new THREE.DirectionalLight(0xcceeff, 1.01);
+        fillLight.position.set(-44, 13.6, 52.8);
+        // fillLight.position.set(-17.8, 13.6, 39.8);
         this.scene.add(fillLight);
     }
 
     private createWall() {
-        const planeGeometry = new THREE.PlaneGeometry(200, 200);
-        const planeMaterial = new THREE.MeshStandardMaterial({ color: 0xEDFCFF  });
+        const planeGeometry = new THREE.PlaneGeometry(200, 600);
+        const planeMaterial = new THREE.MeshStandardMaterial({ color: 0xA9A9A9, roughness: 1, metalness: 0 });
         const wall = new THREE.Mesh(planeGeometry, planeMaterial);
-
         wall.receiveShadow = true;
         this.scene.add(wall);
         return wall;
@@ -329,18 +325,17 @@ export class MarbleWorld {
         if (!this.physics || !this.modelManager) return;
 
         if (!this.isPaused) {
-            const now = performance.now();
-            if (this.lastTime === 0) this.lastTime = now;
-            let deltaTime = (now - this.lastTime) / 1000;
-            this.lastTime = now;
+            let deltaTime = this.clock.getDelta();
 
             if (deltaTime > 0.1) deltaTime = 0.1;
 
             this.accumulator += deltaTime;
 
-            while (this.accumulator >= this.fixedTimeStep) {
+            let stepCount = 0;
+            while (this.accumulator >= this.fixedTimeStep && stepCount < this.maxSubSteps) {
                 this.physics.step();
                 this.accumulator -= this.fixedTimeStep;
+                stepCount++;
             }
 
             this.trajectoryLine.clear();

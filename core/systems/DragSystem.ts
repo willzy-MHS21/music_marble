@@ -1,6 +1,6 @@
 import * as THREE from 'three';
 import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js';
-import { Model } from '../Model';
+import { Model } from '../objects/Model';
 
 export class DragController {
     private draggedModel: Model | null = null;

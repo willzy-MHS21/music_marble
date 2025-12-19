@@ -1,7 +1,7 @@
 import * as THREE from 'three';
 import { DragController } from './DragSystem';
-import { Model } from '../Model';
-import { ModelManager } from '../ModelManager';
+import { Model } from '../objects/Model';
+import { ModelManager } from '../managers/ModelManager';
 
 export class InputSystem {
     private isMouseDown: boolean = false;

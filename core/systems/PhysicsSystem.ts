@@ -1,6 +1,6 @@
 import RAPIER from '@dimforge/rapier3d-compat';
 import * as THREE from 'three';
-import { Model } from '../Model';
+import { Model } from '../objects/Model';
 import { BufferGeometryUtils } from "three/examples/jsm/Addons.js";
 
 export class PhysicsSystem {

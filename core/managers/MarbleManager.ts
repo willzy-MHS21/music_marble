@@ -1,10 +1,10 @@
 import * as THREE from 'three';
-import { Model } from './Model';
-import { ModelManager } from './ModelManager';
-import { PhysicsSystem } from './systems/PhysicsSystem';
+import { Model } from '../objects/Model';
+import { ModelManager } from '../managers/ModelManager';
+import { PhysicsSystem } from '../systems/PhysicsSystem';
 
 export class MarbleManager {
-    private marbleGoalTimers: Map<Model, NodeJS.Timeout> = new Map();
+    private completionTimers: Map<Model, NodeJS.Timeout> = new Map();
     private marbleFallTimers: Map<Model, NodeJS.Timeout> = new Map();
     private marbleInitialPositions: Map<Model, THREE.Vector3> = new Map();
     private modelManager: ModelManager;
@@ -18,6 +18,7 @@ export class MarbleManager {
     public storeInitialPosition(marble: Model): void {
         if (marble.shapeType === 'marble') {
             this.marbleInitialPositions.set(marble, marble.threeObject.position.clone());
+            console.log('Stored initial position for marble:', this.marbleInitialPositions);
         }
     }
 
@@ -29,45 +30,39 @@ export class MarbleManager {
         return this.marbleInitialPositions.get(marble);
     }
 
-    public checkGoalCollision(marble: Model, otherShape: Model, onMarbleRemoved: (marble: Model) => void): void {
-        // Don't start a new timer if one already exists for this marble
-        if (this.marbleGoalTimers.has(marble)) return;
+    public checkCompletion(marble: Model, otherShape: Model, onMarbleRemoved: (marble: Model) => void): void {
+        if (this.completionTimers.has(marble)) return;
 
-        // Get the goal shape (lowest Y position)
-        const goalShape = this.getGoalShape();
-        if (!goalShape) return;
+        const lowestPiece = this.getLowestTrackPiece();
+        if (!lowestPiece) return;
 
-        // Check if the marble collided with the goal shape
-        if (otherShape === goalShape) {
-            console.log('Marble touched the goal! Disappearing in 1 second...');
+        if (otherShape === lowestPiece) {
+            console.log('Marble reached end of track. Resetting in 1 second...');
 
-            // Set a timer to remove the marble after 1 second
             const timer = setTimeout(() => {
                 this.removeMarble(marble, onMarbleRemoved);
-                this.marbleGoalTimers.delete(marble);
+                this.completionTimers.delete(marble);
             }, 1000);
 
-            this.marbleGoalTimers.set(marble, timer);
+            this.completionTimers.set(marble, timer);
         }
     }
 
     public checkMarbleFallOffTrack(onMarbleRemoved: (marble: Model) => void): void {
         const models = this.modelManager.getAllModels();
         const marbles = models.filter(model => model.shapeType === 'marble');
-        const goalShape = this.getGoalShape();
+        const lowestPiece = this.getLowestTrackPiece();
 
-        if (!goalShape) return;
+        if (!lowestPiece) return;
 
-        const lowestY = goalShape.threeObject.position.y;
+        const lowestY = lowestPiece.threeObject.position.y;
 
         marbles.forEach(marble => {
             const marbleY = marble.threeObject.position.y;
 
-            // Check if marble has fallen below the lowest shape
-            if (marbleY < lowestY && !this.marbleFallTimers.has(marble) && !this.marbleGoalTimers.has(marble)) {
+            if (marbleY < lowestY && !this.marbleFallTimers.has(marble) && !this.completionTimers.has(marble)) {
                 console.log('Marble fell below track! Removing in 1 second...');
 
-                // Start 1-second timer before removal
                 const timer = setTimeout(() => {
                     this.removeMarble(marble, onMarbleRemoved);
                     this.marbleFallTimers.delete(marble);
@@ -78,13 +73,12 @@ export class MarbleManager {
         });
     }
 
-    private getGoalShape(): Model | null {
+    private getLowestTrackPiece(): Model | null {
         const models = this.modelManager.getAllModels();
         const nonMarbleModels = models.filter(model => model.shapeType !== 'marble');
 
         if (nonMarbleModels.length === 0) return null;
 
-        // Find the model with the lowest Y position
         let lowestModel = nonMarbleModels[0];
         let lowestY = lowestModel.threeObject.position.y;
 
@@ -99,30 +93,24 @@ export class MarbleManager {
     }
 
     private removeMarble(marble: Model, onMarbleRemoved: (marble: Model) => void): void {
-        // Get the initial position before removing
         const initialPosition = this.marbleInitialPositions.get(marble);
 
-        // Notify parent (for camera unlock logic)
         onMarbleRemoved(marble);
 
-        // Clear all timers for this marble
-        if (this.marbleGoalTimers.has(marble)) {
-            clearTimeout(this.marbleGoalTimers.get(marble)!);
-            this.marbleGoalTimers.delete(marble);
+        if (this.completionTimers.has(marble)) {
+            clearTimeout(this.completionTimers.get(marble)!);
+            this.completionTimers.delete(marble);
         }
         if (this.marbleFallTimers.has(marble)) {
             clearTimeout(this.marbleFallTimers.get(marble)!);
             this.marbleFallTimers.delete(marble);
         }
 
-        // Remove initial position tracking
         this.marbleInitialPositions.delete(marble);
 
-        // Remove the marble from physics and scene
         this.physics.removeBody(marble);
         this.modelManager.removeModel(marble);
 
-        // Spawn a new marble at the initial position 
         if (initialPosition) {
             const newMarble = this.modelManager.spawnModel('marble', initialPosition.clone());
             this.physics.createBody(newMarble);
@@ -132,8 +120,8 @@ export class MarbleManager {
     }
 
     public clearAllTimers(): void {
-        this.marbleGoalTimers.forEach(timer => clearTimeout(timer));
-        this.marbleGoalTimers.clear();
+        this.completionTimers.forEach(timer => clearTimeout(timer));
+        this.completionTimers.clear();
         this.marbleFallTimers.forEach(timer => clearTimeout(timer));
         this.marbleFallTimers.clear();
         this.marbleInitialPositions.clear();

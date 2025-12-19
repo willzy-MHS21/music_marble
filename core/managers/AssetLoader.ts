@@ -1,6 +1,9 @@
 import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
 import * as THREE from 'three';
 
+/**
+ * Preload and store all 3d models and audio before web app starts
+ */
 export class AssetLoader {
     private loader = new GLTFLoader();
     private models = new Map<string, THREE.Group>();
@@ -8,7 +11,7 @@ export class AssetLoader {
     private audioContext: AudioContext;
 
     private modelUrls = ['models/curve.glb', 'models/plank.glb', 'models/cylinder.glb', 'models/marble.glb'];
- 
+
     constructor() {
         this.audioContext = new AudioContext();
     }
