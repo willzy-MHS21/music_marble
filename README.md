@@ -8,54 +8,72 @@ Music Marble is a interactive 3d physics sandbox where you can create marble run
 insert demo video here
 
 ## Features
-TODO
+- **Object Controls** - Object movement, rotation, and removal
+- **Notes Selections** - 12 Key selections and octave selection for higher/lower notes
+- **Physics Settings** - Adjustable gravity and marble speed
+- **Visual Enhancements** - 3D model decorations, shadow casting and lighting effect on collision 
+- **Record & Playback** - Pre-build demo, save/load scene configurations
+- **Others** - Lock/unlock camera, clear scene
 
 ## Controls
 
 | Action | Control |
 | :--- | :--- |
+| **Change gravity/marble speed** | Use the lil-gui in the bottom right |
 | **Move Objects** | `W` `A` `S` `D` or `Left Click + Drag` |
 | **Orbit** | `Left Click + Drag` |
 | **Select Object** | `Left Click` |
-| **Rotate/Delete/Select note For Object** | Use the GUI |
-| **Lock Camera** | Button in the top right |
+| **Rotate/Delete/Select note For Object** | Use the lil-gui after selecting an object |
+| **Lock Camera** | Utility buttons in the top left |
+| **Load demo** | Utility buttons in the top left |
+| **Save/load scene** | Utility buttons in the top left |
+| **Clear** | Utility buttons in the top left |
 
 ## Tech Stack
 
-*   **Framework**: [Next.js 14](https://nextjs.org/) (React)
+*   **Framework**: [Next.js 16](https://nextjs.org/) / [React 19](https://react.dev/)
 *   **3D Engine**: [Three.js](https://threejs.org/)
 *   **Physics**: [Rapier3D](https://rapier.rs/) (WASM-based deterministic physics)
-*   **UI**: [Tailwind CSS](https://tailwindcss.com/) + [Lil-GUI](https://lil-gui.georgealways.com/)
+*   **UI**: [Shadcn/ui](https://ui.shadcn.com/docs/components) + [Tailwind CSS](https://tailwindcss.com/) + [Lil-GUI](https://lil-gui.georgealways.com/)
 *   **Icons**: [Lucide React](https://lucide.dev/)
 
 ## Installation
 
 1. Clone the repository
-
-```bash
-git clone https://github.com/your-username/music-marble.git
-cd music-marble
-```
+    ```bash
+    git clone https://github.com/your-username/music-marble.git
+    cd music-marble
+    ```
 
 2. Install dependencies
-```bash
-npm install
-```
+    ```bash
+    npm install
+    ```
 
 3. Run the development server
-
-```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
-```
+    ```bash
+    npm run dev
+    ```
 
 4. Open [http://localhost:3000](http://localhost:3000) with your browser.
 
 
 ## Future Improvements
+
+### Audio Features
+- Add different instrument sounds (xylophone, marimba, guitar)
+- Volume controls
+
+### Visual Enhancements
+- Different texture on the background and the marble
+- Add more complex objects
+- Lighting and shadow tweaks to make it more realistic
+- Add more decorations
+
+### Physics Enhancements
+- More realistic collision detection and response on complex objects (eg. curve)
+- Bounce/elasticity controls for objects' surfaces
+- Support for multiple marbles
+
 ## Authors and acknowledgment
+Piano sound samples sourced from [fuhton/piano-mp3](https://github.com/fuhton/piano-mp3).
