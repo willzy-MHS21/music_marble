@@ -114,7 +114,7 @@ export default function MarbleScene() {
 				}}
 			/>
 			<UtilityButtons
-				onImport={() => { 
+				onImport={() => {
 					const input = document.getElementById('uploadSceneFile') as HTMLInputElement;
 					input.click();
 				}}
@@ -130,6 +130,9 @@ export default function MarbleScene() {
 				cylinder={(e) => shapeClick('cylinder', e)}
 				curve={(e) => shapeClick('curve', e)}
 				spongebob={(e) => shapeClick('spongebob', e)}
+				ginger={(e) => shapeClick('ginger', e)}
+				steve={(e) => shapeClick('minecraft_-_steve', e)}
+				creeper={(e) => shapeClick('minecraft_creeper', e)}
 				onPlayPause={handlePlayPause}
 				isPaused={isPaused}
 			/>

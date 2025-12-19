@@ -33,9 +33,23 @@ export class ModelManager {
         cloneModel.userData.shapeType = shapeType;
         const model = new Model(cloneModel, shapeType);
 
-        if (shapeType === 'spongebob') {
+        if (
+            shapeType === 'spongebob' ||
+            shapeType === 'ginger' ||
+            shapeType === 'minecraft_-_steve' ||
+            shapeType === 'minecraft_creeper'
+        ) {
             model.isDecoration = true;
-            model.threeObject.scale.set(3, 3, 3);
+            if (shapeType === 'spongebob') {
+                model.threeObject.scale.set(3, 3, 3);
+            } else if (shapeType === 'ginger') {
+                model.threeObject.scale.set(40, 40, 40);
+            } else if (shapeType === 'minecraft_-_steve') {
+                model.threeObject.scale.set(1, 1, 1);
+            } else if (shapeType === 'minecraft_creeper') {
+                model.threeObject.scale.set(1, 1, 1);
+                model.threeObject.rotateY(Math.PI);
+            }
         }
 
         this.scene.add(cloneModel);

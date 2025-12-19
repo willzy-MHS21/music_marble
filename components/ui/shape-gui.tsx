@@ -202,7 +202,7 @@ export class ShapeGUI {
 			const scaleFolder = this.gui.addFolder('Scale');
 			const scaleData = { scale: model.threeObject.scale.x };
 
-			scaleFolder.add(scaleData, 'scale', 0.1, 5, 0.1)
+			scaleFolder.add(scaleData, 'scale', 0.1, 60, 0.1)
 				.name('Size')
 				.onChange((value: number) => {
 					model.threeObject.scale.set(value, value, value);

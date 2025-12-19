@@ -10,24 +10,37 @@ export class AssetLoader {
     private audioBuffers = new Map<string, AudioBuffer>();
     private audioContext: AudioContext;
 
-    private modelUrls = ['models/curve.glb', 'models/plank.glb', 'models/cylinder.glb', 'models/marble.glb', 'models/spongebob.glb'];
+    private modelUrls = [
+        'models/curve.glb',
+        'models/plank.glb',
+        'models/cylinder.glb',
+        'models/marble.glb',
+        'models/spongebob.glb',
+        'models/ginger.glb',
+        'models/minecraft_-_steve.glb',
+        'models/minecraft_creeper.glb'
+    ];
 
     constructor() {
         this.audioContext = new AudioContext();
     }
 
     async loadAllAssets() {
-        const audioUrls = this.generateAudioUrls();
-        await Promise.all(audioUrls.map(url => this.loadAudio(url)));
-        const gltfs = await Promise.all(this.modelUrls.map(url => this.loader.loadAsync(url)));
+        try {
+            const audioUrls = this.generateAudioUrls();
+            await Promise.all(audioUrls.map(url => this.loadAudio(url)));
+            const gltfs = await Promise.all(this.modelUrls.map(url => this.loader.loadAsync(url)));
 
-        gltfs.forEach((gltf, index) => {
-            const url = this.modelUrls[index];
-            const name = url.split('/').pop()?.replace('.glb', '') || '';
-            this.models.set(name, gltf.scene);
-        });
+            gltfs.forEach((gltf, index) => {
+                const url = this.modelUrls[index];
+                const name = url.split('/').pop()?.replace('.glb', '') || '';
+                this.models.set(name, gltf.scene);
+            });
 
-        console.log("All assets loaded");
+            console.log("All assets loaded");
+        } catch (error) {
+            console.error("Critical Error loading assets:", error);
+        }
     }
 
     private generateAudioUrls(): string[] {
