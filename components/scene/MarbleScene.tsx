@@ -128,6 +128,7 @@ export default function MarbleScene() {
 					const text = await file.text();
 					const json = JSON.parse(text);
 					marbleWorldRef.current?.importScene(json);
+					e.target.value = '';
 				}}
 			/>
 			<UtilityButtons
