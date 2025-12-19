@@ -5,7 +5,7 @@ Music Marble is a interactive 3d physics sandbox where you can create marble run
 
 ## Generated music showcase Video
 
-insert demo video here
+https://github.com/user-attachments/assets/eb494d92-aaef-4e7d-9d20-4f3640862f50
 
 ## Features
 - **Object Controls** - Object movement, rotation, and removal
@@ -23,8 +23,8 @@ insert demo video here
 | **Move Objects** | `W` `A` `S` `D` or `Left Click + Drag` |
 | **Orbit** | `Left Click + Drag` |
 | **Select Object** | `Left Click` |
-| **Rotate/Delete/Select note For Object** | Use the lil-gui after selecting an object |
-| **Lock Camera** | Utility buttons in the top left |
+| **Rotate / Delete (Selected Object)** | Select an object, then use lil-gui or press `R` / `Delete`
+| **Lock Camera** | Utility buttons in the top left or press `L`|
 | **Load demo** | Utility buttons in the top left |
 | **Save/load scene** | Utility buttons in the top left |
 | **Clear** | Utility buttons in the top left |
@@ -77,3 +77,12 @@ insert demo video here
 
 ## Authors and acknowledgment
 Piano sound samples sourced from [fuhton/piano-mp3](https://github.com/fuhton/piano-mp3).
+Decoration models credits:
+
+Spongebob" (https://skfb.ly/6ULpS) by SleepyPineapple is licensed under Creative Commons Attribution (http://creativecommons.org/licenses/by/4.0/).
+
+Christmas Ginger Bread Cookies" (https://skfb.ly/o8tMH) by GetDeadEntertainment is licensed under Creative Commons Attribution (http://creativecommons.org/licenses/by/4.0/).
+
+Minecraft - Steve" (https://skfb.ly/6RsFO) by Vincent Yanez is licensed under Creative Commons Attribution (http://creativecommons.org/licenses/by/4.0/).
+
+Minecraft Creeper" (https://skfb.ly/6TPTz) by keithandmarchant is licensed under Creative Commons Attribution (http://creativecommons.org/licenses/by/4.0/).

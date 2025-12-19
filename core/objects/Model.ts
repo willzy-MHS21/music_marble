@@ -13,6 +13,7 @@ export class Model {
         new THREE.Color(0x87ceeb), // Sky blue
         new THREE.Color(0xffffe0)  // Pastel yellow
     ];
+    public isDecoration: boolean = false;
 
     constructor(threeObject: THREE.Object3D, shapeType: string) {
         this.threeObject = threeObject;
@@ -55,10 +56,14 @@ export class Model {
     }
 
     public getMesh(): THREE.Mesh {
-        for (const child of this.threeObject.children) {
-            if (child instanceof THREE.Mesh) {
-                return child;
+        let mesh: THREE.Mesh | null = null;
+        this.threeObject.traverse((child) => {
+            if (!mesh && child instanceof THREE.Mesh) {
+                mesh = child;
             }
+        });
+        if (mesh) {
+            return mesh;
         }
         throw new Error('No mesh found in model');
     }

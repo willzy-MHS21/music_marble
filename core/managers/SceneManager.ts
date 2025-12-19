@@ -46,6 +46,11 @@ export class SceneManager {
                     z: model.threeObject.quaternion.z,
                     w: model.threeObject.quaternion.w,
                 },
+                scale: {
+                    x: model.threeObject.scale.x,
+                    y: model.threeObject.scale.y,
+                    z: model.threeObject.scale.z,
+                },
                 userData: model.threeObject.userData,
             })),
             marbleInitialPosition: marbleInitialPosition,
@@ -73,10 +78,20 @@ export class SceneManager {
                     );
                 }
 
+                if (modelData.scale) {
+                    model.threeObject.scale.set(
+                        modelData.scale.x,
+                        modelData.scale.y,
+                        modelData.scale.z
+                    );
+                }
+
                 if (modelData.userData) {
                     model.threeObject.userData = modelData.userData;
                 }
-                this.physics.createBody(model);
+                if (!model.isDecoration) {
+                    this.physics.createBody(model);
+                }
 
                 // Store initial position for marbles
                 if (model.shapeType === 'marble') {

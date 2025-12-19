@@ -17,7 +17,11 @@ export class InputSystem {
         private onModelClicked: (model: Model) => void,
         private onModelDragStart: (model: Model) => void,
         private onEmptySpaceClicked: () => void,
-        private onSpacePressed: () => void) {
+        private onSpacePressed: () => void,
+        private onDeleteKeyPressed: (model: Model) => void,
+        private onRotateKeyPressed: (model: Model) => void,
+        private onCameraLockPressed: () => void
+    ) {
         this.setupEventListeners();
     }
 
@@ -39,34 +43,50 @@ export class InputSystem {
             return;
         }
 
-        // WASD movement controls
-        if (this.selectedModel && !this.dragController.isDragging()) {
-            const position = this.selectedModel.threeObject.position;
-            let moved = false;
+        if (event.code === 'KeyL') {
+            this.onCameraLockPressed();
+            return;
+        }
 
-            switch (event.code) {
-                case 'KeyW': // Move up
-                    position.y += this.moveSpeed;
-                    moved = true;
-                    break;
-                case 'KeyS': // Move down
-                    position.y -= this.moveSpeed;
-                    moved = true;
-                    break;
-                case 'KeyA': // Move left
-                    position.x -= this.moveSpeed;
-                    moved = true;
-                    break;
-                case 'KeyD': // Move right
-                    position.x += this.moveSpeed;
-                    moved = true;
-                    break;
+        if (this.selectedModel) {
+            if (event.code === 'Delete' || event.code === 'Backspace') {
+                this.onDeleteKeyPressed(this.selectedModel);
+                return;
             }
 
-            if (moved) {
-                event.preventDefault();
-                // Update physics body position if it exists
-                this.onModelMoved(this.selectedModel);
+            if (event.code === 'KeyR') {
+                this.onRotateKeyPressed(this.selectedModel);
+                return;
+            }
+
+            // WASD movement controls
+            if (!this.dragController.isDragging()) {
+                const position = this.selectedModel.threeObject.position;
+                let moved = false;
+
+                switch (event.code) {
+                    case 'KeyW':
+                        position.y += this.moveSpeed;
+                        moved = true;
+                        break;
+                    case 'KeyS':
+                        position.y -= this.moveSpeed;
+                        moved = true;
+                        break;
+                    case 'KeyA':
+                        position.x -= this.moveSpeed;
+                        moved = true;
+                        break;
+                    case 'KeyD':
+                        position.x += this.moveSpeed;
+                        moved = true;
+                        break;
+                }
+
+                if (moved) {
+                    event.preventDefault();
+                    this.onModelMoved(this.selectedModel);
+                }
             }
         }
     };

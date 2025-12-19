@@ -17,7 +17,7 @@ export class ShapeGUI {
 
 	// Checks if the model is a marble shape
 	private isMarble(model: Model): boolean {
-		return model.shapeType === 'marble';
+		return model.shapeType === 'marble' || model.isDecoration;
 	}
 
 	/**
@@ -196,6 +196,20 @@ export class ShapeGUI {
 			});
 
 		rotationFolder.open();
+
+		// Scale controls (Decoration only)
+		if (model.isDecoration) {
+			const scaleFolder = this.gui.addFolder('Scale');
+			const scaleData = { scale: model.threeObject.scale.x };
+
+			scaleFolder.add(scaleData, 'scale', 0.1, 60, 0.1)
+				.name('Size')
+				.onChange((value: number) => {
+					model.threeObject.scale.set(value, value, value);
+				});
+
+			scaleFolder.open();
+		}
 
 		// Delete button
 		const actions = {

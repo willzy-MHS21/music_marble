@@ -2,7 +2,8 @@ import * as THREE from 'three';
 import { Model } from '../objects/Model';
 
 export class ModelManager {
-    private models: Model[] = [];
+    private physicsModels: Model[] = [];
+    private decorationModels: Model[] = [];
     private preloadedModels: Map<string, THREE.Group>;
 
     constructor(private scene: THREE.Scene, preloadedModels: Map<string, THREE.Group>) {
@@ -31,28 +32,68 @@ export class ModelManager {
         cloneModel.position.copy(position);
         cloneModel.userData.shapeType = shapeType;
         const model = new Model(cloneModel, shapeType);
+
+        if (
+            shapeType === 'spongebob' ||
+            shapeType === 'ginger' ||
+            shapeType === 'minecraft_-_steve' ||
+            shapeType === 'minecraft_creeper'
+        ) {
+            model.isDecoration = true;
+            if (shapeType === 'spongebob') {
+                model.threeObject.scale.set(3, 3, 3);
+            } else if (shapeType === 'ginger') {
+                model.threeObject.scale.set(40, 40, 40);
+            } else if (shapeType === 'minecraft_-_steve') {
+                model.threeObject.scale.set(1, 1, 1);
+            } else if (shapeType === 'minecraft_creeper') {
+                model.threeObject.scale.set(1, 1, 1);
+                model.threeObject.rotateY(Math.PI);
+            }
+        }
+
         this.scene.add(cloneModel);
-        this.models.push(model);
+
+        if (model.isDecoration) {
+            this.decorationModels.push(model);
+        } else {
+            this.physicsModels.push(model);
+        }
+
         return model;
     }
 
     public removeModel(model: Model): void {
         this.scene.remove(model.threeObject);
-        const index = this.models.indexOf(model);
-        if (index > -1) {
-            this.models.splice(index, 1);
+        if (model.isDecoration) {
+            const index = this.decorationModels.indexOf(model);
+            if (index > -1) this.decorationModels.splice(index, 1);
+        } else {
+            const index = this.physicsModels.indexOf(model);
+            if (index > -1) this.physicsModels.splice(index, 1);
         }
     }
 
     public getAllModels(): Model[] {
-        return this.models;
+        return [...this.physicsModels, ...this.decorationModels];
+    }
+
+    public getPhysicsModels(): Model[] {
+        return this.physicsModels;
+    }
+
+    public getDecorationModels(): Model[] {
+        return this.decorationModels;
     }
 
     public getModelByThreeObject(threeObject: THREE.Object3D): Model | null {
-        return this.models.find(m => m.threeObject === threeObject) || null;
+        let model = this.physicsModels.find(m => m.threeObject === threeObject);
+        if (model) return model;
+        return this.decorationModels.find(m => m.threeObject === threeObject) || null;
     }
 
     public clear(): void {
-        [...this.models].forEach(model => this.removeModel(model));
+        [...this.physicsModels].forEach(model => this.removeModel(model));
+        [...this.decorationModels].forEach(model => this.removeModel(model));
     }
 }
