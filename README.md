@@ -1,6 +1,7 @@
 # Music Marble
 
-Music Marble is a interactive 3D physics sandbox where users can create marble run that generate music. 
+Music Marble is a interactive 3D physics sandbox where users can create marble run that generate music. \
+Our app is live at: https://music-marble.vercel.app/
 
 ## Overview
 Music Marble combines physics simulation with audio feedback to create an engaging creative experience. Users can place a marble and various 3D shapes (curve, block, and hollow cylinder) onto a vertical wall, adjust their positions and rotations, and then let the marble roll through the custom-built course. Each collision generates audio feedback, turning your marble run into a musical instrument.
