@@ -73,6 +73,7 @@ https://github.com/user-attachments/assets/eb494d92-aaef-4e7d-9d20-4f3640862f50
 ### Audio Features
 - Add different instrument sounds (xylophone, marimba, guitar)
 - Volume controls
+- Different sound effects
 
 ### Visual Enhancements
 - Different texture on the background and the marble
@@ -95,29 +96,29 @@ marble_music/
 │       ├── MarbleScene.tsx     # Main scene component
 │       ├── button.tsx          # Shadcn button components
 │       ├── shape-buttons.tsx   # Shape selection buttons
-│       ├── shape-gui.tsx       # Shape GUI interface
+│       ├── shape-gui.tsx       # Lil-gui for objects
 │       ├── tooltip.tsx         # Shadcn tooltip component
 │       └── utility-buttons.tsx # Utility action buttons
 ├── core/                       
 │   ├── managers/
 │   │   ├── AssetLoader.ts      # Asset loading manager
-│   │   ├── MarbleManager.ts    # Marble state management
-│   │   ├── ModelManager.ts     # 3D model management
-│   │   └── SceneManager.ts     # Scene import/export
+│   │   ├── MarbleManager.ts    # Marble state manager
+│   │   ├── ModelManager.ts     # 3D model manager
+│   │   └── SceneManager.ts     # Scene import/export manager
 │   ├── objects/
 │   │   ├── Model.ts            # Model class definition
 │   │   └── TrajectoryLine.ts   # Physics trajectory visualization
 │   ├── systems/
 │   │   ├── AudioSystem.ts      # Sound effects system
 │   │   ├── CameraController.ts # Camera control system
-│   │   ├── DragSystem.ts       # Drag and drop handling
+│   │   ├── DragSystem.ts       # Drag objects handling
 │   │   ├── InputSystem.ts      # User input handling
 │   │   ├── PhysicsSystem.ts    # Physics simulation
 │   │   ├── SelectionSystem.ts  # Object selection
-│   │   └── WorldGUI.ts         # World GUI controls
-│   └── MarbleWorld.ts          # Main world controller
+│   │   └── WorldGUI.ts         # Physics world controls
+│   └── MarbleWorld.ts          # Main world 
 └── lib/
-    ├── utils.ts                # React Utility functions
+    └── utils.ts                # React Utility functions
 ```
 
 ## Authors and Acknowledgment
