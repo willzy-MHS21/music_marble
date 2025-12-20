@@ -117,8 +117,7 @@ marble_music/
 │   │   └── WorldGUI.ts         # World GUI controls
 │   └── MarbleWorld.ts          # Main world controller
 └── lib/
-    ├── utils.ts                # Utility functions
-    └── utils.tsx               # React utility functions
+    ├── utils.ts                # React Utility functions
 ```
 
 ## Authors and Acknowledgment
