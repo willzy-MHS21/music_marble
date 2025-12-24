@@ -44,8 +44,8 @@ https://github.com/user-attachments/assets/eb494d92-aaef-4e7d-9d20-4f3640862f50
 
 1. Clone the repository
     ```bash
-    git clone https://github.com/your-username/music-marble.git
-    cd music-marble
+    git clone https://github.com/willzy-MHS21/music_marble.git
+    cd music_marble
     ```
 
 2. Install dependencies
@@ -94,6 +94,7 @@ marble_music/
 ├── components/                 # UI components
 │   └── scene/
 │       ├── MarbleScene.tsx     # Main scene component
+│   └── ui/
 │       ├── button.tsx          # Shadcn button components
 │       ├── shape-buttons.tsx   # Shape selection buttons
 │       ├── shape-gui.tsx       # Lil-gui for objects
